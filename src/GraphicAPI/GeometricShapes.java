@@ -10,7 +10,7 @@ public class GeometricShapes extends JFrame {
 		private int x;
         private int y;
         private int r;
-        private Color color;
+        Color color;
 
         public Cercle(int[] args) {
             this.x = args[0];
@@ -39,6 +39,13 @@ public class GeometricShapes extends JFrame {
             int centerY = y + r / 2;
             double distance = Math.sqrt(Math.pow(px - centerX, 2) + Math.pow(py - centerY, 2));
             return distance <= r / 2;
+        }
+        public void paintNew(JPanel drawingPanel, Cercle cercle) {
+            Graphics2D g2d = (Graphics2D) drawingPanel.getGraphics();
+            Stroke stroke2 = new BasicStroke(8f);
+            g2d.setStroke(stroke2);
+            g2d.setColor(cercle.color);
+            g2d.fillOval(cercle.x, cercle.y, cercle.r, cercle.r);
         }
 
     }
