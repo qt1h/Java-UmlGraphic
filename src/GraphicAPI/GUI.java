@@ -5,6 +5,7 @@ import java.awt.*;
 import javax.swing.border.Border;
 
 import GraphicAPI.GeometricShapes.Cercle;
+import GraphicAPI.GeometricShapes.Rectangle;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -15,9 +16,11 @@ import java.util.ArrayList;
 
 public class GUI extends JFrame {
     ArrayList<Cercle> cercles;
+    ArrayList<GeometricShapes.Rectangle> rectangles;
     private JFrame frame;
     private String selectedShape;
-    private int startX, startY; // Coordonnées du premier point
+    private int x1,y1; // Coordonnées du premier point
+    private boolean firstClickDone = false;
 
     public static void main(String[] args) {
         EventQueue.invokeLater(new Runnable() {
@@ -35,15 +38,20 @@ public class GUI extends JFrame {
         for (Cercle cercle : cercles) {
             cercle.paint(drawingPanel);
         }
+        for (Rectangle rectangle : rectangles) {
+            rectangle.paint(drawingPanel);
+        }
     }
 
     public GUI() {
+        cercles = new ArrayList<>();
+        rectangles = new ArrayList<>();
+        selectedShape = "Rectangle";
         initialize();
     }
 
     public void initialize() {
-        cercles = new ArrayList<>();
-        selectedShape = "Rectangle";
+        
         frame = new JFrame();
         frame.setBounds(100, 100, 450, 300);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -90,74 +98,103 @@ public class GUI extends JFrame {
         frame.setVisible(true);
 
         drawingPanel.addMouseListener(new MouseListener() {
+        	int x2, y2;
             @Override
             public void mouseClicked(MouseEvent e) {}
 
             @Override
             public void mousePressed(MouseEvent e) {
-                startX = e.getX(); // Enregistrer les coordonnées du premier point
-                startY = e.getY();
-                System.out.println(startX);
+            	
+                
+                if (selectedShape.equals("Circle")) {
+                    if (!firstClickDone) {
+                	System.out.println(e.getX());
+                    x1=e.getX();
+                    y1=e.getY();
+                    int[] a = {e.getX() - 25, e.getY() - 25, 50};
+                    GeometricShapes geometricShapes = new GeometricShapes();
+                    GeometricShapes.Cercle nouveauCercle = geometricShapes.new Cercle(a);
+                    //cercles.add(nouveauCercle);
+                    firstClickDone = true;
+                    paint(drawingPanel);
+                   
+                    } else { 
+                    	int radius = (int) Math.sqrt(Math.pow(e.getX() - x1, 2) + Math.pow(e.getY() - y1, 2));
+                    	int[] circleParams = {x1 - radius, y1 - radius, radius * 2};
+                    	GeometricShapes geometricShapes = new GeometricShapes();
+                    GeometricShapes.Cercle nouveauCercle = geometricShapes.new Cercle(circleParams);
+                    cercles.add(nouveauCercle);
+                    paint(drawingPanel);
+                    firstClickDone = false;
+                    }
+                }
+                    
+                    
+                    else if (selectedShape.equals("Rectangle")) {
+                    System.out.println(e.getX());
+                    System.out.println(e.getY());
+                    if (x1 == 0 && y1 == 0) {
+                    	x1=e.getX();
+                        y1=e.getY();
+                    } else {
+                        x2 = e.getX();
+                        y2 = e.getY();
+                        int width = Math.abs(x2 - x1);
+                        int height = Math.abs(y2 - y1);
+                        int[] a = {Math.min(x1, x2), Math.min(y1, y2), width, height};
+                        GeometricShapes geometricShapes = new GeometricShapes();
+                        GeometricShapes.Rectangle nouveauRectangle = geometricShapes.new Rectangle(a);
+                        rectangles.add(nouveauRectangle);
+                        x1 = y1 = x2 = y2 = 0; // Réinitialiser pour la prochaine fois
+                        paint(drawingPanel);
+                    }
+                }
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
-                if (selectedShape.equals("Circle")) {
-                    int radius = (int) Math.sqrt(Math.pow(e.getX() - startX, 2) + Math.pow(e.getY() - startY, 2));
-                    int x = startX - radius; // Coordonnée x du coin supérieur gauche
-                    int y = startY - radius; // Coordonnée y du coin supérieur gauche
-                    int[] a = {x, y, radius * 2}; // Créez le cercle avec le coin supérieur gauche et le diamètre
-                    GeometricShapes geometricShapes = new GeometricShapes();
-                    Cercle nouveauCercle = geometricShapes.new Cercle(a);
-                    cercles.add(nouveauCercle); // Ajouter le nouveau cercle à la liste
-                    paint(drawingPanel); // Redessiner le panneau de dessin
-                }
+            	
             }
 
             @Override
             public void mouseEntered(MouseEvent e) {}
             @Override
             public void mouseExited(MouseEvent e) {}
+            
         });
         drawingPanel.addMouseMotionListener(new MouseMotionListener() {
             @Override
             public void mouseDragged(MouseEvent e) {
-                if (selectedShape.equals("Circle")) {
-                    // Récupérer les dimensions du panneau de dessin
-                    int panelWidth = drawingPanel.getWidth();
-                    int panelHeight = drawingPanel.getHeight();
-
-                    // Dessiner un fond blanc pour effacer les aperçus précédents et les cercles précédemment dessinés
-                    Graphics g = drawingPanel.getGraphics();
-                    g.setColor(Color.WHITE);
-                    g.fillRect(0, 0, panelWidth, panelHeight);
-
-                    // Redessiner les cercles précédemment dessinés
-                    paint(drawingPanel);
-
-                    // Calculer le rayon du cercle en fonction de la position actuelle de la souris
-                    int radius = (int) Math.sqrt(Math.pow(e.getX() - startX, 2) + Math.pow(e.getY() - startY, 2));
-
-                    // Mettre à jour les coordonnées du coin supérieur gauche en fonction de la position actuelle de la souris
-                    int x = startX - radius;
-                    int y = startY - radius;
-
-                    // Redéfinir les coordonnées et le rayon du cercle
-                    int[] a = {x, y, radius * 2};
-
-                    // Dessiner le cercle prévisualisé en vert
-                    g.setColor(Color.GREEN);
-                    Graphics2D g2d = (Graphics2D) drawingPanel.getGraphics(); // Obtenir le contexte graphique du JPanel
-                    Stroke stroke2 = new BasicStroke(8f);
-                    g2d.setStroke(stroke2);
-                    g2d.drawOval(x, y, radius * 2, radius * 2);
-                }
+                
             }
 
             @Override
-            public void mouseMoved(MouseEvent e) {}
+            public void mouseMoved(MouseEvent e) {
+            	
+            	 if (selectedShape.equals("Circle") && firstClickDone && isMouseInsideDrawingArea(e)) {
+                     // Dessiner un fond blanc pour effacer les aperçus précédents
+                     Graphics g = drawingPanel.getGraphics();
+                     g.setColor(Color.WHITE);
+                     g.fillRect(0, 0, drawingPanel.getWidth(), drawingPanel.getHeight());
+
+                     // Redessiner les cercles précédemment dessinés
+                     paint(drawingPanel);
+
+                     // Calculer le rayon du cercle en fonction de la position actuelle de la souris
+                     int radius = (int) Math.sqrt(Math.pow(e.getX() - x1, 2) + Math.pow(e.getY() - y1, 2));
+
+                     // Dessiner le cercle prévisualisé
+                     g.setColor(Color.GREEN);
+                     g.drawOval(x1 - radius, y1 - radius, radius * 2, radius * 2);
+                     
+                 }
+            }
+
+			private boolean isMouseInsideDrawingArea(MouseEvent e) {
+				// TODO Auto-generated method stub
+				return e.getX() >= 0 && e.getX() <= drawingPanel.getWidth() && e.getY() >= 0 && e.getY() <= drawingPanel.getHeight();			}
         });
-
-
+        
+        
     }
 }
