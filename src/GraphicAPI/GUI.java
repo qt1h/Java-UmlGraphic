@@ -19,7 +19,7 @@ public class GUI extends JFrame {
     ArrayList<GeometricShapes.Rectangle> rectangles;
     private JFrame frame;
     private String selectedShape;
-    private int x1,y1; // Coordonnées du premier point
+    private int x1,y1;
     private boolean firstClickDone = false;
 
     public static void main(String[] args) {
@@ -130,23 +130,24 @@ public class GUI extends JFrame {
                 }
                     
                     
-                    else if (selectedShape.equals("Rectangle")) {
-                    System.out.println(e.getX());
-                    System.out.println(e.getY());
-                    if (x1 == 0 && y1 == 0) {
-                    	x1=e.getX();
-                        y1=e.getY();
+                else if (selectedShape.equals("Rectangle")) {
+                    if (!firstClickDone) {
+                        
+                        x1 = e.getX();
+                        y1 = e.getY();
+                        firstClickDone = true; 
                     } else {
+                        
                         x2 = e.getX();
                         y2 = e.getY();
                         int width = Math.abs(x2 - x1);
                         int height = Math.abs(y2 - y1);
-                        int[] a = {Math.min(x1, x2), Math.min(y1, y2), width, height};
+                        int[] rectangleParams = {Math.min(x1, x2), Math.min(y1, y2), width, height};
                         GeometricShapes geometricShapes = new GeometricShapes();
-                        GeometricShapes.Rectangle nouveauRectangle = geometricShapes.new Rectangle(a);
+                        GeometricShapes.Rectangle nouveauRectangle = geometricShapes.new Rectangle(rectangleParams);
                         rectangles.add(nouveauRectangle);
-                        x1 = y1 = x2 = y2 = 0; // Réinitialiser pour la prochaine fois
-                        paint(drawingPanel);
+                        paint(drawingPanel); 
+                        firstClickDone = false; 
                     }
                 }
             }
@@ -171,13 +172,13 @@ public class GUI extends JFrame {
             @Override
             public void mouseMoved(MouseEvent e) {
             	
-            	 if (selectedShape.equals("Circle") && firstClickDone && isMouseInsideDrawingArea(e)) {
-                     // Dessiner un fond blanc pour effacer les aperçus précédents
+            	 if (selectedShape.equals("Circle") && firstClickDone ) {
+                     // fond blanc pour effacer les aperçus précédents
                      Graphics g = drawingPanel.getGraphics();
                      g.setColor(Color.WHITE);
                      g.fillRect(0, 0, drawingPanel.getWidth(), drawingPanel.getHeight());
 
-                     // Redessiner les cercles précédemment dessinés
+                     // Redessiner les cercles/rectangles
                      paint(drawingPanel);
 
                      // Calculer le rayon du cercle en fonction de la position actuelle de la souris
@@ -188,11 +189,27 @@ public class GUI extends JFrame {
                      g.drawOval(x1 - radius, y1 - radius, radius * 2, radius * 2);
                      
                  }
+            	 if (selectedShape.equals("Rectangle") && firstClickDone) {
+            		    // Dessiner un fond blanc pour effacer les aperçus précédents
+            		    Graphics g = drawingPanel.getGraphics();
+            		    g.setColor(Color.WHITE);
+            		    g.fillRect(0, 0, drawingPanel.getWidth(), drawingPanel.getHeight());
+
+            		    // Redessiner les cercles/rectangles
+            		    paint(drawingPanel);
+
+          
+            		    int x = Math.min(x1, e.getX());
+            		    int y = Math.min(y1, e.getY());
+            		    int width = Math.abs(e.getX() - x1);
+            		    int height = Math.abs(e.getY() - y1);
+
+            		    // rectangle prévisualisé
+            		    g.setColor(Color.GREEN);
+            		    g.drawRect(x, y, width, height);
+            		}
             }
 
-			private boolean isMouseInsideDrawingArea(MouseEvent e) {
-				// TODO Auto-generated method stub
-				return e.getX() >= 0 && e.getX() <= drawingPanel.getWidth() && e.getY() >= 0 && e.getY() <= drawingPanel.getHeight();			}
         });
         
         
