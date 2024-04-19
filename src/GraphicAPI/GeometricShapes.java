@@ -28,7 +28,7 @@ public class GeometricShapes extends JFrame {
             Stroke stroke2 = new BasicStroke(8f);
             g2d.setStroke(stroke2);
             g2d.setColor(color);
-            g2d.drawOval(x, y, r, r);
+            g2d.fillOval(x, y, r, r);
             // Pas besoin de disposer, car Graphics2D est obtenu à partir du JPanel
         }
 
