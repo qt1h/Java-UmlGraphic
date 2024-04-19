@@ -2,6 +2,8 @@ package GraphicAPI;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.Point;
+
 import java.io.Serializable;
 
 public class GeometricShapes extends JFrame {
@@ -33,11 +35,10 @@ public class GeometricShapes extends JFrame {
         }
 
 
-        public boolean isPointInside(int px, int py) {
-
+        public boolean contains(Point point) {
             int centerX = x + r / 2;
             int centerY = y + r / 2;
-            double distance = Math.sqrt(Math.pow(px - centerX, 2) + Math.pow(py - centerY, 2));
+            double distance = Math.sqrt(Math.pow(point.getX() - centerX, 2) + Math.pow(point.getY() - centerY, 2));
             return distance <= r / 2;
         }
         public void paintNew(JPanel drawingPanel, Cercle cercle) {
@@ -79,7 +80,11 @@ public class GeometricShapes extends JFrame {
                       // Pas besoin de disposer, car Graphics2D est obtenu à partir du JPanel
         }
         
-
+        public boolean contains(Point point) {
+            // Vérifier si le point est à l'intérieur des limites du rectangle
+            return point.getX() >= x1 && point.getX() <= x1 + x2 &&
+                   point.getY() >= y1 && point.getY() <= y1 + y2;
+        }
         /*public boolean isPointInside(int px, int py) {
 
             int centerX = x + r / 2;
