@@ -3,20 +3,25 @@ package GraphicAPI;
 import javax.swing.*;
 import java.awt.*;
 import javax.swing.border.Border;
+
+import GraphicAPI.GeometricShapes.Cercle;
+
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.util.ArrayList;
 
 public class GUI extends JFrame {
-
+    ArrayList<Cercle> cercles;
     private JFrame frame;
+    private String selectedShape; // Déclarez selectedShape ici pour le rendre accessible partout dans la classe
 
     public static void main(String[] args) {
         EventQueue.invokeLater(new Runnable() {
             public void run() {
                 try {
-                    GUI window = new GUI();
-                    window.frame.setVisible(true);
+                    new GUI();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -24,11 +29,19 @@ public class GUI extends JFrame {
         });
     }
 
+    public void paint(JPanel drawingPanel) {
+        for (Cercle cercle : cercles) {
+            cercle.paint(drawingPanel);
+        }
+    }
+
     public GUI() {
         initialize();
     }
 
-    private void initialize() {
+    public void initialize() {
+        cercles = new ArrayList<>();
+        selectedShape = "Rectangle"; // Initialisez selectedShape ici
         frame = new JFrame();
         frame.setBounds(100, 100, 450, 300);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -63,7 +76,7 @@ public class GUI extends JFrame {
         shapeComboBox.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String selectedShape = (String) shapeComboBox.getSelectedItem();
+                selectedShape = (String) shapeComboBox.getSelectedItem();
                 System.out.println("Selected Shape: " + selectedShape);
             }
         });
@@ -75,5 +88,29 @@ public class GUI extends JFrame {
         JPanel drawingPanel = new JPanel();
         drawingPanel.setBackground(Color.WHITE); // couleur de fond pour la zone de dessin
         frame.getContentPane().add(drawingPanel, BorderLayout.CENTER);
+        frame.setVisible(true);
+        drawingPanel.addMouseListener(new MouseListener() {
+            @Override
+            public void mouseClicked(MouseEvent e) {}
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (selectedShape.equals("Circle")) {
+                    System.out.println(e.getX());
+                    int[] a ={e.getX() - 25, e.getY() - 25, 50};
+                    GeometricShapes geometricShapes = new GeometricShapes();
+                    Cercle nouveauCercle = geometricShapes.new Cercle(a);
+                    cercles.add(nouveauCercle);
+                    paint(drawingPanel);
+                }
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {}
+            @Override
+            public void mouseEntered(MouseEvent e) {}
+            @Override
+            public void mouseExited(MouseEvent e) {}
+        });
     }
 }
