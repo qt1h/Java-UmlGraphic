@@ -1,67 +1,79 @@
 package GraphicAPI;
 
-import java.awt.EventQueue;
+import javax.swing.*;
+import java.awt.*;
+import javax.swing.border.Border;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
-import javax.swing.JFrame;
-import java.awt.Rectangle;
-import java.awt.Dimension;
-import javax.swing.JList;
-import java.awt.BorderLayout;
-import java.awt.GridLayout;
-import javax.swing.JSplitPane;
-import javax.swing.JToolBar;
-import javax.swing.JButton;
-import javax.swing.JToggleButton;
 
-public class GUI {
+public class GUI extends JFrame {
 
-	private JFrame frame;
+    private JFrame frame;
 
-	/**
-	 * Launch the application.
-	 */
-	public static void main(String[] args) {
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					GUI window = new GUI();
-					window.frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		});
-	}
+    public static void main(String[] args) {
+        EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                try {
+                    GUI window = new GUI();
+                    window.frame.setVisible(true);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
 
-	/**
-	 * Create the application.
-	 */
-	public GUI() {
-		initialize();
-	}
+    public GUI() {
+        initialize();
+    }
 
-	/**
-	 * Initialize the contents of the frame.
-	 */
-	private void initialize() {
-		frame = new JFrame();
-		frame.setBounds(100, 100, 450, 300);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.getContentPane().setLayout(new GridLayout(0, 1, 0, 0));
-		
-		JToolBar toolBar = new JToolBar();
-		toolBar.setToolTipText("OK");
-		frame.getContentPane().add(toolBar);
-		
-		JButton btnNewButton = new JButton("New button");
-		toolBar.add(btnNewButton);
-		
-		JList list = new JList();
-		list.setToolTipText("");
-		toolBar.add(list);
-		
-		JToggleButton toggleButton = new JToggleButton("New toggle button");
-		toolBar.add(toggleButton);
-	}
+    private void initialize() {
+        frame = new JFrame();
+        frame.setBounds(100, 100, 450, 300);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
+        frame.getContentPane().setLayout(new BorderLayout());
+
+        JToolBar toolBar = new JToolBar();
+        toolBar.setLayout(new FlowLayout(FlowLayout.LEFT));
+        toolBar.setFloatable(false);
+        frame.getContentPane().add(toolBar, BorderLayout.NORTH);
+
+        // Ajouter des composants flexibles à gauche et à droite de la JToolBar
+        toolBar.add(Box.createHorizontalGlue());
+        toolBar.add(Box.createHorizontalGlue());
+
+        JToggleButton newButtonSelect = new JToggleButton("Select");
+        JToggleButton newButtonAdd = new JToggleButton("Add");
+        JToggleButton newButtonDiff = new JToggleButton("Difference");
+        JToggleButton newButtonUnion = new JToggleButton("Union");
+
+        toolBar.add(newButtonSelect);
+        toolBar.add(newButtonAdd);
+        toolBar.add(newButtonDiff);
+        toolBar.add(newButtonUnion);
+
+        toolBar.addSeparator();
+
+        // Menu déroulant des formes
+        JComboBox<String> shapeComboBox = new JComboBox<>(new String[]{"Rectangle", "Circle", "Triangle"});
+        toolBar.add(shapeComboBox);
+
+        shapeComboBox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String selectedShape = (String) shapeComboBox.getSelectedItem();
+                System.out.println("Selected Shape: " + selectedShape);
+            }
+        });
+
+        Border bottomBorder = BorderFactory.createMatteBorder(0, 0, 1, 0, Color.BLACK);
+        toolBar.setBorder(BorderFactory.createCompoundBorder(toolBar.getBorder(), bottomBorder));
+
+        // Zone de dessin (exemple)
+        JPanel drawingPanel = new JPanel();
+        drawingPanel.setBackground(Color.WHITE); // couleur de fond pour la zone de dessin
+        frame.getContentPane().add(drawingPanel, BorderLayout.CENTER);
+    }
 }

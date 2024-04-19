@@ -46,8 +46,9 @@ public class GeometricShapes extends JFrame {
             g2d.fillPolygon(xPoints, yPoints, 3);
         }
     }
-
+    /*
     public static void main(String[] args) {
         SwingUtilities.invokeLater(GeometricShapes::new);
     }
+    */
 }
