@@ -17,12 +17,16 @@ import java.util.ArrayList;
 public class GUI extends JFrame {
     ArrayList<Cercle> cercles;
     ArrayList<GeometricShapes.Rectangle> rectangles;
+    ArrayList<GeometricShapes.Rectangle> groupRect; // à généraliser groupe de formes
     private JFrame frame;
     private String selectedShape;
     private int x1, y1, x2, y2;
     private boolean firstClickDone = false;
     private boolean deleteMode = false;
+    private boolean selectMode = false;
     private int selectedShapeIndex = -1;
+    private int selectStartX, selectStartY, selectEndX, selectEndY;
+    private Rectangle selectionRect = null;
 
     public static void main(String[] args) {
         EventQueue.invokeLater(new Runnable() {
@@ -51,11 +55,24 @@ public class GUI extends JFrame {
         for (Rectangle rectangle : rectangles) {
             rectangle.paint(drawingPanel);
         }
+        if (selectMode) {
+            g.setColor(new Color(0, 0, 255, 100)); // Bleu semi-transparent
+            int width = Math.abs(selectEndX - selectStartX);
+            int height = Math.abs(selectEndY - selectStartY);
+            int x = Math.min(selectStartX, selectEndX);
+            int y = Math.min(selectStartY, selectEndY);
+            g.fillRect(x, y, width, height);
+        }
+        g.setColor(Color.BLUE);
+        for (Rectangle rectangle : groupRect) {
+            rectangle.paintWithSelectionBorder(drawingPanel);
+        }
     }
 
     public GUI() {
         cercles = new ArrayList<>();
         rectangles = new ArrayList<>();
+        groupRect = new ArrayList<>();
         selectedShape = "Rectangle";
         initialize();
     }
@@ -136,47 +153,59 @@ public class GUI extends JFrame {
 
             @Override
             public void mousePressed(MouseEvent e) {
-                if (deleteMode) { // Vérifier si le mode de suppression est activé
-                    return; // Retourner sans exécuter le reste de la méthode si le mode de suppression est activé
-                }
-
-                if (selectedShape.equals("Circle")) {
-                    if (!firstClickDone) {
-                        x1 = e.getX();
-                        y1 = e.getY();
-                        firstClickDone = true;
+                if (selectMode) {
+                    selectStartX = e.getX();
+                    selectStartY = e.getY();
+                    selectEndX = e.getX();
+                    selectEndY = e.getY();
+                } else {
+                    if (deleteMode) { // Vérifier si le mode de suppression est activé
+                        return; // Retourner sans exécuter le reste de la méthode si le mode de suppression est activé
                     }
-                } else if (selectedShape.equals("Rectangle")) {
-                    if (!firstClickDone) {
-                        x1 = e.getX();
-                        y1 = e.getY();
-                        firstClickDone = true;
+
+                    if (selectedShape.equals("Circle")) {
+                        if (!firstClickDone) {
+                            x1 = e.getX();
+                            y1 = e.getY();
+                            firstClickDone = true;
+                        }
+                    } else if (selectedShape.equals("Rectangle")) {
+                        if (!firstClickDone) {
+                            x1 = e.getX();
+                            y1 = e.getY();
+                            firstClickDone = true;
+                        }
                     }
                 }
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
-                if (!deleteMode && firstClickDone) { // Si le mode de suppression est désactivé et le premier clic a été effectué
-                    if (selectedShape.equals("Circle")) {
-                        int radius = (int) Math.sqrt(Math.pow(e.getX() - x1, 2) + Math.pow(e.getY() - y1, 2));
-                        int[] circleParams = {x1 - radius, y1 - radius, radius * 2};
-                        GeometricShapes geometricShapes = new GeometricShapes();
-                        GeometricShapes.Cercle nouveauCercle = geometricShapes.new Cercle(circleParams);
-                        cercles.add(nouveauCercle);
-                        paint(drawingPanel);
-                    } else if (selectedShape.equals("Rectangle")) {
-                        x2 = e.getX();
-                        y2 = e.getY();
-                        int width = Math.abs(x2 - x1);
-                        int height = Math.abs(y2 - y1);
-                        int[] rectangleParams = {Math.min(x1, x2), Math.min(y1, y2), width, height};
-                        GeometricShapes geometricShapes = new GeometricShapes();
-                        GeometricShapes.Rectangle nouveauRectangle = geometricShapes.new Rectangle(rectangleParams);
-                        rectangles.add(nouveauRectangle);
-                        paint(drawingPanel);
+                if (selectMode) {
+                    selectShapesInArea(); // Mettre à jour les formes sélectionnées
+                    paint(drawingPanel); // Redessiner pour afficher les formes sélectionnées avec le bord en gris ou noir
+                } else {
+                    if (!deleteMode && firstClickDone) { // Si le mode de suppression est désactivé et le premier clic a été effectué
+                        if (selectedShape.equals("Circle")) {
+                            int radius = (int) Math.sqrt(Math.pow(e.getX() - x1, 2) + Math.pow(e.getY() - y1, 2));
+                            int[] circleParams = {x1 - radius, y1 - radius, radius * 2};
+                            GeometricShapes geometricShapes = new GeometricShapes();
+                            GeometricShapes.Cercle nouveauCercle = geometricShapes.new Cercle(circleParams);
+                            cercles.add(nouveauCercle);
+                            paint(drawingPanel);
+                        } else if (selectedShape.equals("Rectangle")) {
+                            x2 = e.getX();
+                            y2 = e.getY();
+                            int width = Math.abs(x2 - x1);
+                            int height = Math.abs(y2 - y1);
+                            int[] rectangleParams = {Math.min(x1, x2), Math.min(y1, y2), width, height};
+                            GeometricShapes geometricShapes = new GeometricShapes();
+                            GeometricShapes.Rectangle nouveauRectangle = geometricShapes.new Rectangle(rectangleParams);
+                            rectangles.add(nouveauRectangle);
+                            paint(drawingPanel);
+                        }
+                        firstClickDone = false;
                     }
-                    firstClickDone = false;
                 }
             }
 
@@ -193,21 +222,28 @@ public class GUI extends JFrame {
         drawingPanel.addMouseMotionListener(new MouseMotionListener() {
             @Override
             public void mouseDragged(MouseEvent e) {
-                if (!deleteMode && firstClickDone) { // Si le mode de suppression est désactivé et le premier clic a été effectué
-                    paint(drawingPanel); // Redessiner les formes précédentes pour les mettre à jour
-                    if (selectedShape.equals("Circle")) {
-                        int radius = (int) Math.sqrt(Math.pow(e.getX() - x1, 2) + Math.pow(e.getY() - y1, 2));
-                        Graphics g = drawingPanel.getGraphics();
-                        g.setColor(Color.GREEN);
-                        g.drawOval(x1 - radius, y1 - radius, radius * 2, radius * 2);
-                    } else if (selectedShape.equals("Rectangle")) {
-                        int x = Math.min(x1, e.getX());
-                        int y = Math.min(y1, e.getY());
-                        int width = Math.abs(e.getX() - x1);
-                        int height = Math.abs(e.getY() - y1);
-                        Graphics g = drawingPanel.getGraphics();
-                        g.setColor(Color.GREEN);
-                        g.drawRect(x, y, width, height);
+                if (selectMode) {
+                    selectEndX = e.getX();
+                    selectEndY = e.getY();
+                    selectShapesInArea(); // Mettre à jour les formes sélectionnées
+                    paint(drawingPanel); // Redessiner pour afficher les formes sélectionnées avec le bord en gris ou noir
+                } else {
+                    if (!deleteMode && firstClickDone) { // Si le mode de suppression est désactivé et le premier clic a été effectué
+                        paint(drawingPanel); // Redessiner pour afficher les formes précédentes pour les mettre à jour
+                        if (selectedShape.equals("Circle")) {
+                            int radius = (int) Math.sqrt(Math.pow(e.getX() - x1, 2) + Math.pow(e.getY() - y1, 2));
+                            Graphics g = drawingPanel.getGraphics();
+                            g.setColor(Color.GREEN);
+                            g.drawOval(x1 - radius, y1 - radius, radius * 2, radius * 2);
+                        } else if (selectedShape.equals("Rectangle")) {
+                            int x = Math.min(x1, e.getX());
+                            int y = Math.min(y1, e.getY());
+                            int width = Math.abs(e.getX() - x1);
+                            int height = Math.abs(e.getY() - y1);
+                            Graphics g = drawingPanel.getGraphics();
+                            g.setColor(Color.GREEN);
+                            g.drawRect(x, y, width, height);
+                        }
                     }
                 }
             }
@@ -216,12 +252,36 @@ public class GUI extends JFrame {
             public void mouseMoved(MouseEvent e) {
             }
         });
-
+        
         newButtonDel.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 deleteMode = newButtonDel.isSelected();
             }
         });
+        
+        newButtonSelect.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                selectMode = newButtonSelect.isSelected();
+            }
+        });
+        
+    }
+
+    private void selectShapesInArea() {
+        groupRect.clear(); // Effacez la liste des formes sélectionnées précédemment
+        int[] rectangleParams = {Math.min(selectStartX, selectEndX), Math.min(selectStartY, selectEndY),
+                Math.abs(selectEndX - selectStartX), Math.abs(selectEndY - selectStartY)};
+        GeometricShapes geometricShapes = new GeometricShapes();
+        selectionRect = geometricShapes.new Rectangle(rectangleParams);
+        
+        for (Rectangle rectangle : rectangles) {
+            if (rectangle.intersects(selectionRect)) {
+                groupRect.add(rectangle);
+            }
+        }
+        // Ajoutez une logique similaire pour les cercles si nécessaire
+        // Vous pouvez également effectuer d'autres actions avec les formes sélectionnées, comme les afficher différemment, etc.
     }
 }
