@@ -4,8 +4,9 @@ import javax.swing.*;
 import java.awt.*;
 import javax.swing.border.Border;
 
-import GraphicAPI.GeometricShapes.Cercle;
+import GraphicAPI.GeometricShapes.Circle;
 import GraphicAPI.GeometricShapes.Rectangle;
+import GraphicAPI.GeometricShapes.Shape;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -15,9 +16,10 @@ import java.awt.event.MouseMotionListener;
 import java.util.ArrayList;
 
 public class GUI extends JFrame {
-    ArrayList<Cercle> cercles;
-    ArrayList<GeometricShapes.Rectangle> rectangles;
-    ArrayList<GeometricShapes.Rectangle> groupRect; // à généraliser groupe de formes
+    //ArrayList<Circle> cercles;
+    //ArrayList<GeometricShapes.Rectangle> rectangles;
+	ArrayList<Shape> shapes;
+    ArrayList<Shape> groupShape; // à généraliser groupe de formes
     private JFrame frame;
     private String selectedShape;
     private int x1, y1, x2, y2;
@@ -49,11 +51,14 @@ public class GUI extends JFrame {
         Graphics g = drawingPanel.getGraphics();
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, drawingPanel.getWidth(), drawingPanel.getHeight());
-        for (Cercle cercle : cercles) {
-            cercle.paint(drawingPanel);
-        }
-        for (Rectangle rectangle : rectangles) {
-            rectangle.paint(drawingPanel);
+        for (Shape shape : shapes) {
+            if (shape instanceof Circle) {
+                Circle circle = (Circle) shape;
+                circle.paint(drawingPanel);
+            } else if (shape instanceof Rectangle) {
+                Rectangle rectangle = (Rectangle) shape;
+                rectangle.paint(drawingPanel);
+            }
         }
         if (selectMode) {
             g.setColor(new Color(0, 0, 255, 100)); // Bleu semi-transparent
@@ -64,15 +69,20 @@ public class GUI extends JFrame {
             g.fillRect(x, y, width, height);
         }
         g.setColor(Color.BLUE);
-        for (Rectangle rectangle : groupRect) {
-            rectangle.paintWithSelectionBorder(drawingPanel);
+        for (Shape shape : groupShape) {
+            if (shape instanceof Rectangle) {
+                Rectangle rectangle = (Rectangle) shape;
+                rectangle.paintWithSelectionBorder(drawingPanel);
+            } else if (shape instanceof Circle) {
+                Circle circle = (Circle) shape;
+                circle.paintWithSelectionBorder(drawingPanel);
+            }
         }
     }
 
     public GUI() {
-        cercles = new ArrayList<>();
-        rectangles = new ArrayList<>();
-        groupRect = new ArrayList<>();
+    	shapes = new ArrayList<>();
+        groupShape = new ArrayList<>();
         selectedShape = "Rectangle";
         initialize();
     }
@@ -132,20 +142,24 @@ public class GUI extends JFrame {
 
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (deleteMode) {
+            	if (deleteMode) {
                     // Vérifier si l'utilisateur a cliqué sur une forme existante
-                    for (int i = cercles.size() - 1; i >= 0; i--) {
-                        if (cercles.get(i).contains(e.getPoint())) {
-                            cercles.remove(i);
+                    for (int i = shapes.size() - 1; i >= 0; i--) {
+                        if (shapes.get(i).contains(e.getPoint())) {
+                            shapes.remove(i);
                             paint(drawingPanel);
                             return;
                         }
                     }
-                    for (int i = rectangles.size()-1; i >=0 ; i--) {
-                        if (rectangles.get(i).contains(e.getPoint())) {
-                            rectangles.remove(i);
+                }else if (selectMode) {
+                    // Vérifier si le mode de sélection est activé
+                    for (Shape shape : shapes) {
+                        if (shape instanceof Rectangle && shape.contains(e.getPoint())) {
+                            // Si le clic a été effectué sur un rectangle, ajoutez-le à la liste des formes sélectionnées
+                            groupShape.add(shape);
+                            // Redessinez le panneau pour afficher la sélection
                             paint(drawingPanel);
-                            return;
+                            return; // Sortez de la boucle après avoir trouvé le premier rectangle sélectionné
                         }
                     }
                 }
@@ -190,8 +204,8 @@ public class GUI extends JFrame {
                             int radius = (int) Math.sqrt(Math.pow(e.getX() - x1, 2) + Math.pow(e.getY() - y1, 2));
                             int[] circleParams = {x1 - radius, y1 - radius, radius * 2};
                             GeometricShapes geometricShapes = new GeometricShapes();
-                            GeometricShapes.Cercle nouveauCercle = geometricShapes.new Cercle(circleParams);
-                            cercles.add(nouveauCercle);
+                            GeometricShapes.Circle newCircle = geometricShapes.new Circle(circleParams);
+                            shapes.add(newCircle);
                             paint(drawingPanel);
                         } else if (selectedShape.equals("Rectangle")) {
                             x2 = e.getX();
@@ -200,8 +214,8 @@ public class GUI extends JFrame {
                             int height = Math.abs(y2 - y1);
                             int[] rectangleParams = {Math.min(x1, x2), Math.min(y1, y2), width, height};
                             GeometricShapes geometricShapes = new GeometricShapes();
-                            GeometricShapes.Rectangle nouveauRectangle = geometricShapes.new Rectangle(rectangleParams);
-                            rectangles.add(nouveauRectangle);
+                            GeometricShapes.Rectangle newRectangle = geometricShapes.new Rectangle(rectangleParams);
+                            shapes.add(newRectangle);
                             paint(drawingPanel);
                         }
                         firstClickDone = false;
@@ -270,18 +284,56 @@ public class GUI extends JFrame {
     }
 
     private void selectShapesInArea() {
-        groupRect.clear(); // Effacez la liste des formes sélectionnées précédemment
+        groupShape.clear(); // Effacer la liste des formes sélectionnées précédemment
         int[] rectangleParams = {Math.min(selectStartX, selectEndX), Math.min(selectStartY, selectEndY),
                 Math.abs(selectEndX - selectStartX), Math.abs(selectEndY - selectStartY)};
         GeometricShapes geometricShapes = new GeometricShapes();
         selectionRect = geometricShapes.new Rectangle(rectangleParams);
         
-        for (Rectangle rectangle : rectangles) {
-            if (rectangle.intersects(selectionRect)) {
-                groupRect.add(rectangle);
+        for (Shape shape : shapes) {
+            if (shape instanceof Circle) {
+                Circle circle = (Circle) shape;
+                // Vérifier si le cercle est contenu dans la zone de sélection
+                if (isCircleInArea(circle)) {
+                    groupShape.add(circle);
+                }
+            } else if (shape instanceof Rectangle) {
+                Rectangle rectangle = (Rectangle) shape;
+                // Vérifier si le rectangle intersecte la zone de sélection
+                if (rectangle.getBounds().intersects(selectionRect.getBounds())) {
+                    groupShape.add(rectangle);
+                }
             }
         }
-        // Ajoutez une logique similaire pour les cercles si nécessaire
-        // Vous pouvez également effectuer d'autres actions avec les formes sélectionnées, comme les afficher différemment, etc.
     }
+
+    private boolean isCircleInArea(Circle circle) {
+        int centerX = circle.getCenterX();
+        int centerY = circle.getCenterY();
+        int radius = circle.getRadius();
+        
+        // Coordonnées du coin supérieur gauche du rectangle de sélection
+        int areaX = Math.min(selectStartX, selectEndX);
+        int areaY = Math.min(selectStartY, selectEndY);
+        
+        // Largeur et hauteur du rectangle de sélection
+        int areaWidth = Math.abs(selectEndX - selectStartX);
+        int areaHeight = Math.abs(selectEndY - selectStartY);
+        
+        // Coordonnées du coin inférieur droit du rectangle de sélection
+        int areaEndX = areaX + areaWidth;
+        int areaEndY = areaY + areaHeight;
+        
+        // Vérification si un point du cercle est dans la zone de sélection
+        for (int x = Math.max(centerX - radius, areaX); x <= Math.min(centerX + radius, areaEndX); x++) {
+            for (int y = Math.max(centerY - radius, areaY); y <= Math.min(centerY + radius, areaEndY); y++) {
+                double distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+                if (distance <= radius/2) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
 }
