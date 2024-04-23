@@ -25,8 +25,12 @@ public class GUI extends JFrame {
     private boolean deleteMode = false;
     private boolean selectMode = false;
     private boolean addMode = false;
+    private boolean reziseMode = false;
+    int handleSize = 6;
+    private boolean handleClicked = false;
     private boolean movingShape = false; // Ajout d'un indicateur pour le déplacement d'une forme
     private int selectedShapeIndex = -1;
+    private int selectRectX1, selectRectY1, selectRectX2, selectRectY2;
     private int selectStartX, selectStartY, selectEndX, selectEndY;
     private Rectangle selectionRect = null;
 
@@ -66,6 +70,18 @@ public class GUI extends JFrame {
             int x = Math.min(selectStartX, selectEndX);
             int y = Math.min(selectStartY, selectEndY);
             g.fillRect(x, y, width, height);
+            selectRectX1 = x;
+            selectRectY1 = y;
+            selectRectX2 = x + width;
+            selectRectY2 = y + height;
+        }
+        if (groupShape.size() > 0) {
+            g.setColor(Color.BLACK);
+            g.fillRect(selectRectX1 - handleSize / 2, selectRectY1 - handleSize / 2, handleSize, handleSize); // Coin supérieur gauche
+            g.fillRect(selectRectX2 - handleSize / 2, selectRectY1 - handleSize / 2, handleSize, handleSize); // Coin supérieur droit
+            g.fillRect(selectRectX1 - handleSize / 2, selectRectY2  - handleSize / 2, handleSize, handleSize); // Coin inférieur gauche
+            g.fillRect(selectRectX2 - handleSize / 2, selectRectY2  - handleSize / 2, handleSize, handleSize); // Coin inférieur droit
+    
         }
         g.setColor(Color.BLUE);
         for (Shape shape : groupShape) {
@@ -169,6 +185,7 @@ public class GUI extends JFrame {
             @Override
             public void mousePressed(MouseEvent e) {
                 if (selectMode) {
+                    // Logique de sélection en cours
                     paint(drawingPanel);
                     selectStartX = e.getX();
                     selectStartY = e.getY();
@@ -176,9 +193,12 @@ public class GUI extends JFrame {
                     selectEndY = e.getY();
                 } else {
                     if (deleteMode) {
+                        // Logique de suppression
                         return;
                     }
                     if (addMode) {
+                        System.out.println("Add Mode: " + addMode);
+                        // Logique d'ajout de forme
                         paint(drawingPanel);
                         if (selectedShape.equals("Circle")) {
                             if (!firstClickDone) {
@@ -193,53 +213,33 @@ public class GUI extends JFrame {
                                 firstClickDone = true;
                             }
                         }
-                    } else if (groupShape.size() > 0) { // Gérer le déplacement d'une forme
-                        boolean clickedInsideShape = false;
-                        for (Shape shape : groupShape) {
-                            if (shape.contains(e.getPoint())) {
-                                clickedInsideShape = true;
-                                break;
+                    } else if (groupShape.size() > 0) {
+                    
+                                if (isHandleClicked(e.getX(), e.getY(), selectRectX1 - handleSize / 2, selectRectY1 - handleSize / 2) ||
+                                    isHandleClicked(e.getX(), e.getY(), selectRectX2 - handleSize / 2, selectRectY1 - handleSize / 2) ||
+                                    isHandleClicked(e.getX(), e.getY(), selectRectX1 - handleSize / 2, selectRectY2  - handleSize / 2) ||
+                                    isHandleClicked(e.getX(), e.getY(), selectRectX2 - handleSize / 2, selectRectY2  - handleSize / 2)) {
+                                    reziseMode = true;
+                                    handleClicked = true;
+                                }
                             }
-                        }
-                        if (clickedInsideShape) {
-                            // Enregistrer les coordonnées initiales de la souris par rapport à la forme
-                            x1 = e.getX();
-                            y1 = e.getY();
-                            movingShape = true;
-                        } else {
-                            // Si la souris est cliquée à l'extérieur de la forme, réinitialiser la sélection
+
+                        if (!handleClicked) {
+                            // Si le clic n'est pas sur une poignée, commencez une nouvelle sélection
                             groupShape.clear();
-                            selectMode = true;
                             selectStartX = e.getX();
                             selectStartY = e.getY();
                             selectEndX = e.getX();
                             selectEndY = e.getY();
-                            // Vérifier si un autre mode est sélectionné
-                            if (addMode || deleteMode) {
-                                addMode = false;
-                                deleteMode = false;
-                            }
                             paint(drawingPanel);
                         }
-                    } else {
-                        // Si aucun mode n'est activé et que vous cliquez sur le panneau de dessin,
-                        // activez le mode de sélection et réinitialisez les coordonnées
-                        selectMode = true;
-                        selectStartX = e.getX();
-                        selectStartY = e.getY();
-                        selectEndX = e.getX();
-                        selectEndY = e.getY();
-                        paint(drawingPanel);
-                    }
                 }
-            
             }
-
             @Override
             public void mouseReleased(MouseEvent e) {
                 if (selectMode) {
-                    selectShapesInArea();
-                    selectMode = false; // Désactiver le mode de sélection
+                    selectShapesInArea(); // Désactiver le mode de sélection
+                    selectMode = false;
                     resetCoordinates();
                     paint(drawingPanel);
                 } else {
@@ -265,7 +265,9 @@ public class GUI extends JFrame {
                         }
 
                         firstClickDone = false;
+                        
                     }
+                    paint(drawingPanel);
                 }
             }
 
@@ -304,7 +306,8 @@ public class GUI extends JFrame {
                             g.setColor(Color.GREEN);
                             g.drawRect(x, y, width, height);
                         }
-                    } else if (movingShape) { // Déplacer la forme sélectionnée
+                    }
+                    else if (movingShape) { // Déplacer la forme sélectionnée
                         // Calculer le décalage dx et dy pour le déplacement
                         dx = e.getX() - x1;
                         dy = e.getY() - y1;
@@ -315,9 +318,44 @@ public class GUI extends JFrame {
                         x1 = e.getX();
                         y1 = e.getY();
                         paint(drawingPanel);
+                    }else if (groupShape.size() > 0) {// Logique de redimensionnement de la forme sélectionnée
+                        if (reziseMode) {
+                            int dx = e.getX() - x1;
+                            int dy = e.getY() - y1;
+                            for (Shape selectedShape : groupShape) {
+                                    if (selectedShape instanceof Circle) {
+                                        Circle circle = (Circle) selectedShape;
+                                        if (groupShape.contains(circle)) {
+                                            circle.rezise(dx);
+                                        }
+                                    } else if (selectedShape instanceof Rectangle) {
+                                        Rectangle rectangle = (Rectangle) selectedShape;
+                                        if (groupShape.contains(rectangle)) {
+                                            rectangle.rezise(dx, dy);
+                                        }
+                                    }
+                                
+                            }
+                            x1 = e.getX();
+                            y1 = e.getY();
+                            paint(drawingPanel);
+                        }
+                        if (!handleClicked) {
+                            // Logique de déplacement de la forme sélectionnée
+                            int dx = e.getX() - x1;
+                            int dy = e.getY() - y1;
+                            for (Shape selectedShape : groupShape) {
+                                selectedShape.setBounds(dx, dy);
+                            }
+                            x1 = e.getX();
+                            y1 = e.getY();
+                            paint(drawingPanel);
+                        }
                     }
                 }
-            }
+                
+            
+        }
 
             @Override
             public void mouseMoved(MouseEvent e) {
@@ -364,6 +402,7 @@ public class GUI extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 addMode = newButtonAdd.isSelected();
+                System.out.println("Add Mode: " + addMode);
                 newButtonDel.setSelected(false);
                 newButtonSelect.setSelected(false);
                 deleteMode = false;
@@ -400,6 +439,9 @@ public class GUI extends JFrame {
                 }
             }
         }
+    }
+    private boolean isHandleClicked(int mouseX, int mouseY, int handleX, int handleY) {
+        return Math.abs(mouseX - handleX) <= handleSize / 2 && Math.abs(mouseY - handleY) <= handleSize / 2;
     }
 
     private boolean isCircleInArea(Circle circle) {
