@@ -26,6 +26,7 @@ public class GUI extends JFrame {
     private boolean firstClickDone = false;
     private boolean deleteMode = false;
     private boolean selectMode = false;
+    private boolean addMode = false;
     private int selectedShapeIndex = -1;
     private int selectStartX, selectStartY, selectEndX, selectEndY;
     private Rectangle selectionRect = null;
@@ -176,20 +177,22 @@ public class GUI extends JFrame {
                     if (deleteMode) { // Vérifier si le mode de suppression est activé
                         return; // Retourner sans exécuter le reste de la méthode si le mode de suppression est activé
                     }
+                    if (addMode){
+                        if (selectedShape.equals("Circle")) {
+                            if (!firstClickDone) {
+                                x1 = e.getX();
+                                y1 = e.getY();
+                                firstClickDone = true;
+                            }
+                        } else if (selectedShape.equals("Rectangle")) {
+                            if (!firstClickDone) {
+                                x1 = e.getX();
+                                y1 = e.getY();
+                                firstClickDone = true;
+                            }
+                        }
+                }
 
-                    if (selectedShape.equals("Circle")) {
-                        if (!firstClickDone) {
-                            x1 = e.getX();
-                            y1 = e.getY();
-                            firstClickDone = true;
-                        }
-                    } else if (selectedShape.equals("Rectangle")) {
-                        if (!firstClickDone) {
-                            x1 = e.getX();
-                            y1 = e.getY();
-                            firstClickDone = true;
-                        }
-                    }
                 }
             }
 
@@ -199,7 +202,7 @@ public class GUI extends JFrame {
                     selectShapesInArea(); // Mettre à jour les formes sélectionnées
                     paint(drawingPanel); // Redessiner pour afficher les formes sélectionnées avec le bord en gris ou noir
                 } else {
-                    if (!deleteMode && firstClickDone) { // Si le mode de suppression est désactivé et le premier clic a été effectué
+                    if (!deleteMode && firstClickDone && addMode ) { // Si le mode de suppression est désactivé et le premier clic a été effectué
                         if (selectedShape.equals("Circle")) {
                             int radius = (int) Math.sqrt(Math.pow(e.getX() - x1, 2) + Math.pow(e.getY() - y1, 2));
                             int[] circleParams = {x1 - radius, y1 - radius, radius * 2};
@@ -242,7 +245,7 @@ public class GUI extends JFrame {
                     selectShapesInArea(); // Mettre à jour les formes sélectionnées
                     paint(drawingPanel); // Redessiner pour afficher les formes sélectionnées avec le bord en gris ou noir
                 } else {
-                    if (!deleteMode && firstClickDone) { // Si le mode de suppression est désactivé et le premier clic a été effectué
+                    if (!deleteMode && firstClickDone && addMode) { // Si le mode de suppression est désactivé et le premier clic a été effectué
                         paint(drawingPanel); // Redessiner pour afficher les formes précédentes pour les mettre à jour
                         if (selectedShape.equals("Circle")) {
                             int radius = (int) Math.sqrt(Math.pow(e.getX() - x1, 2) + Math.pow(e.getY() - y1, 2));
@@ -271,6 +274,8 @@ public class GUI extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 deleteMode = newButtonDel.isSelected();
+                selectMode=false;
+                addMode=false;
             }
         });
         
@@ -278,9 +283,18 @@ public class GUI extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 selectMode = newButtonSelect.isSelected();
+                deleteMode=false;
+                addMode=false;
             }
         });
-        
+        newButtonAdd.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                addMode = newButtonAdd.isSelected();
+                deleteMode=false;
+                selectMode=false;
+            }
+        });
     }
 
     private void selectShapesInArea() {
