@@ -331,7 +331,14 @@ public class GUI extends JFrame {
                 selectMode = false;
                 addMode = false;
                 movingShape = false; // Désactiver le déplacement lors de la suppression
-                groupShape.clear(); // Effacer la sélection en mode delete
+                if (deleteMode) {
+                    // Supprimer les formes sélectionnées
+                    shapes.removeAll(groupShape);
+                    groupShape.clear(); // Effacer la sélection en mode delete
+                }
+               
+                selectStartX = selectStartY = selectEndX = selectEndY = 0;// Effacer la sélection en mode delete
+                
                 paint(drawingPanel);
                 newButtonAdd.setSelected(false);
                 
