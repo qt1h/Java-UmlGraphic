@@ -22,11 +22,12 @@ public class GUI extends JFrame {
     ArrayList<Shape> groupShape; // à généraliser groupe de formes
     private JFrame frame;
     private String selectedShape;
-    private int x1, y1, x2, y2;
+    private int x1, y1, x2, y2,dx,dy;
     private boolean firstClickDone = false;
     private boolean deleteMode = false;
     private boolean selectMode = false;
     private boolean addMode = false;
+    private boolean moveMode = false;
     private int selectedShapeIndex = -1;
     private int selectStartX, selectStartY, selectEndX, selectEndY;
     private Rectangle selectionRect = null;
@@ -44,7 +45,7 @@ public class GUI extends JFrame {
     }
 
     public void resetCoordinates() {
-        x1 = y1 = x2 = y2 = 0;
+        x1 = y1 = x2 = y2 = dx= dy=0;
         // Ajoutez d'autres variables de coordonnées ici si nécessaire
     }
 
@@ -106,11 +107,13 @@ public class GUI extends JFrame {
 
         JToggleButton newButtonSelect = new JToggleButton("Select");
         JToggleButton newButtonAdd = new JToggleButton("Add");
+        JToggleButton newButtonMove = new JToggleButton("Move");
         JToggleButton newButtonDiff = new JToggleButton("Difference");
         JToggleButton newButtonUnion = new JToggleButton("Union");
         JToggleButton newButtonDel = new JToggleButton("Delete");
         toolBar.add(newButtonSelect);
         toolBar.add(newButtonAdd);
+        toolBar.add(newButtonMove);
         toolBar.add(newButtonDiff);
         toolBar.add(newButtonUnion);
         toolBar.add(newButtonDel);
@@ -140,7 +143,6 @@ public class GUI extends JFrame {
         frame.setVisible(true);
 
         drawingPanel.addMouseListener(new MouseListener() {
-
             @Override
             public void mouseClicked(MouseEvent e) {
             	if (deleteMode) {
@@ -162,13 +164,16 @@ public class GUI extends JFrame {
                             paint(drawingPanel);
                             return; // Sortez de la boucle après avoir trouvé le premier rectangle sélectionné
                         }
+                
                     }
                 }
+                  
             }
 
             @Override
             public void mousePressed(MouseEvent e) {
                 if (selectMode) {
+                    paint(drawingPanel);
                     selectStartX = e.getX();
                     selectStartY = e.getY();
                     selectEndX = e.getX();
@@ -177,7 +182,31 @@ public class GUI extends JFrame {
                     if (deleteMode) { // Vérifier si le mode de suppression est activé
                         return; // Retourner sans exécuter le reste de la méthode si le mode de suppression est activé
                     }
+                    else if (moveMode) {
+                        firstClickDone=true;
+                        x1 = e.getX();
+                        y1 = e.getY();
+                        paint(drawingPanel);
+                        // Vérifier si le mode de sélection est activé
+                        for (Shape shape : shapes) {
+                            if (shape instanceof Rectangle && shape.contains(e.getPoint())) {
+                                // Si le clic a été effectué sur un rectangle, ajoutez-le à la liste des formes sélectionnées
+                                groupShape.add(shape);
+                                // Redessinez le panneau pour afficher la sélection
+                                paint(drawingPanel);
+                                return; // Sortez de la boucle après avoir trouvé le premier rectangle sélectionné
+                            }
+                            if (shape instanceof Circle && shape.contains(e.getPoint())) {
+                                // Si le clic a été effectué sur un rectangle, ajoutez-le à la liste des formes sélectionnées
+                                groupShape.add(shape);
+                                // Redessinez le panneau pour afficher la sélection
+                                paint(drawingPanel);
+                                return; // Sortez de la boucle après avoir trouvé le premier rectangle sélectionné
+                            }
+                        } 
+                    }
                     if (addMode){
+                        paint(drawingPanel);
                         if (selectedShape.equals("Circle")) {
                             if (!firstClickDone) {
                                 x1 = e.getX();
@@ -191,8 +220,7 @@ public class GUI extends JFrame {
                                 firstClickDone = true;
                             }
                         }
-                }
-
+                    }
                 }
             }
 
@@ -223,7 +251,13 @@ public class GUI extends JFrame {
                         }
                         firstClickDone = false;
                     }
+                if (moveMode && firstClickDone) {
+                    firstClickDone = false;
+                    resetCoordinates();
+                    groupShape.clear();
                 }
+                }
+                
             }
 
             @Override
@@ -262,6 +296,20 @@ public class GUI extends JFrame {
                             g.drawRect(x, y, width, height);
                         }
                     }
+                    if(moveMode && firstClickDone){
+                        if (groupShape.size() > 0) {
+                            int dx = e.getX() - x1;
+                            int dy = e.getY() - y1;
+                            System.out.println(x1);
+                            System.out.println(y1);
+                            for (Shape shape : groupShape) {
+                                shape.setBounds(dx, dy);
+                            }
+                            x1 = e.getX();
+                            y1 = e.getY();                            
+                            paint(drawingPanel);
+                        }
+                    }
                 }
             }
 
@@ -276,15 +324,16 @@ public class GUI extends JFrame {
                 deleteMode = newButtonDel.isSelected();
                 selectMode=false;
                 addMode=false;
+                moveMode=false;
             }
-        });
-        
+        });    
         newButtonSelect.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 selectMode = newButtonSelect.isSelected();
                 deleteMode=false;
                 addMode=false;
+                moveMode=false;
             }
         });
         newButtonAdd.addActionListener(new ActionListener() {
@@ -293,6 +342,17 @@ public class GUI extends JFrame {
                 addMode = newButtonAdd.isSelected();
                 deleteMode=false;
                 selectMode=false;
+                moveMode=false;
+                System.out.println("Add mode: " + addMode);
+            }
+        });
+        newButtonMove.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                moveMode = newButtonMove.isSelected();
+                deleteMode=false;
+                selectMode=false;
+                addMode=false;
             }
         });
     }
