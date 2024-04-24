@@ -16,7 +16,10 @@ public class GeometricShapes extends JFrame {
         java.awt.Rectangle getBounds();
         void setBounds(int dx, int dy);
         java.awt.Shape getShape();//obtenir la forme géométrique
+		
+		
     }
+    
 
     class Circle implements Shape, Serializable {
         private int x;
@@ -89,6 +92,20 @@ public class GeometricShapes extends JFrame {
             g2d.drawOval(x, y, r, r);
             g2d.setStroke(oldStroke); // Restauration de l'ancien style de trait
         }
+        
+        public void paintWithOperationBorder(JPanel drawingPanel) {
+			Graphics2D g2d = (Graphics2D) drawingPanel.getGraphics();
+            Stroke oldStroke = g2d.getStroke(); // Sauvegarde de l'ancien style de trait
+            g2d.setStroke(new BasicStroke(3, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{4}, 0)); // Création du style de trait en pointillés
+            g2d.setColor(Color.RED);
+            g2d.drawOval(x, y,r,r );
+            g2d.setStroke(oldStroke); 
+		}
+        public void resize(int dx, int dy) {
+            // Ajuster le rayon du cercle
+            r += Math.max(dx, dy); // Augmenter le rayon
+            r = Math.max(r, 0); // S'assurer que le rayon est toujours positif ou nul
+        }
     }
 
     public class Rectangle implements Shape, Serializable {
@@ -149,6 +166,7 @@ public class GeometricShapes extends JFrame {
             g2d.drawRect(x1, y1, width, height);
             g2d.setStroke(oldStroke); // Restauration de l'ancien style de trait
         }
+        
 
         public boolean contains(Point point) {
             // Vérifier si le point est à l'intérieur des limites du rectangle
@@ -168,6 +186,24 @@ public class GeometricShapes extends JFrame {
         public java.awt.Shape getShape() {
             return new Rectangle2D.Double(x1, y1, width, height);
         }
+
+		public void paintWithOperationBorder(JPanel drawingPanel) {
+			Graphics2D g2d = (Graphics2D) drawingPanel.getGraphics();
+            Stroke oldStroke = g2d.getStroke(); // Sauvegarde de l'ancien style de trait
+            g2d.setStroke(new BasicStroke(2, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{4}, 0)); // Création du style de trait en pointillés
+            g2d.setColor(Color.RED);
+            g2d.drawRect(x1, y1, width, height);
+            g2d.setStroke(oldStroke); 
+		}
+
+		public void resize(int dx, int dy) {
+		    // Ajuster la largeur et la hauteur du rectangle
+		    width += dx;
+		    height += dy;
+		    // S'assurer que la largeur et la hauteur sont toujours positives
+		    width = Math.max(width, 0);
+		    height = Math.max(height, 0);
+		}
     }
 
     class ComplexShape implements Shape {
@@ -189,11 +225,32 @@ public class GeometricShapes extends JFrame {
             return shape.getBounds();
         }
 
+        public void clearShapes() {
+            // Effacer toutes les sous-formes de la forme complexe
+            shapes.clear();
+            // Réinitialiser la zone de la forme complexe
+            shape.reset();
+        }
         @Override
         public void setBounds(int dx, int dy) {
-            // Pas nécessaire pour les formes complexes
+        	
+            // Parcourir toutes les sous-formes de la forme complexe
+            for (Shape shape : shapes) {
+                // Déplacer chaque sous-forme en ajoutant les valeurs de dx et dy à ses coordonnées
+                shape.setBounds(dx, dy);
+            }
+            
+            // Recréer la zone de la forme complexe en fonction des nouvelles positions des sous-formes
+            shape.reset();
+            for (Shape s : shapes) {
+                if (s instanceof ComplexShape) {
+                    // Si la forme est de type complexe, ajouter sa zone à la forme complexe principale
+                    shape.add(new Area(s.getShape()));
+                  
+                }
+            }
+            
         }
-
         @Override
         public java.awt.Shape getShape() {
             return shape;
@@ -206,10 +263,62 @@ public class GeometricShapes extends JFrame {
             g2d.fill(shape);
             // Dessiner la forme complexe
         }
+        public void drawBorder(Graphics2D g2, JPanel drawingPanel) {
+            // Vérifier si le JPanel est null
+            if (drawingPanel == null) {
+                System.out.println("Error: drawingPanel is null.");
+                return;
+            }
 
+            // Sauvegarder la couleur actuelle
+            Color prevColor = g2.getColor();
+            // Définir la couleur de la bordure
+            g2.setColor(Color.BLUE);
+
+            // Parcourir toutes les formes simples contenues dans la forme complexe
+            for (Shape shape : shapes) {
+                // Vérifier si la forme simple est à l'intérieur de la forme complexe
+                if (shape.getBounds().intersects(getBounds())) {
+                    // Dessiner la bordure de la forme simple
+                    if (shape instanceof Rectangle) {
+                        Rectangle rectangle = (Rectangle) shape;
+                        rectangle.paintWithSelectionBorder(drawingPanel);
+                    } else if (shape instanceof Circle) {
+                        Circle circle = (Circle) shape;
+                        circle.paintWithSelectionBorder(drawingPanel);
+                    }
+                    // Ajoutez d'autres cas pour les formes supplémentaires si nécessaire
+                }
+            }
+
+            // Restaurer la couleur précédente
+            g2.setColor(prevColor);
+        }
         public ArrayList<Shape> getShapes() {
             return shapes;
         }
+        public void updateBounds(int dx, int dy) { 
+            // Créer une nouvelle zone pour la forme complexe mise à jour
+            Area updatedShape = new Area();
+            for (Shape subShape : shapes) {
+                if (subShape instanceof Circle) {
+                    Circle circle = (Circle) subShape;
+                    Ellipse2D.Double ellipse = new Ellipse2D.Double(circle.x + dx, circle.y + dy, circle.r, circle.r);
+                    updatedShape.add(new Area(ellipse));
+                } else if (subShape instanceof Rectangle) {
+                    Rectangle rectangle = (Rectangle) subShape;
+                    Rectangle2D.Double rect = new Rectangle2D.Double(rectangle.x1 + dx, rectangle.y1 + dy, rectangle.width, rectangle.height);
+                    updatedShape.add(new Area(rect));
+                }
+                // Ajoutez d'autres conditions pour les autres types de formes si nécessaire
+            }
+            // Mettre à jour la zone de la forme complexe
+            shape = updatedShape;
+        }
+
+        // Autres méthodes de la classe
+    
+        
     }
 
 }
