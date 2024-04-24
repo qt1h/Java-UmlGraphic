@@ -1,22 +1,23 @@
 package GraphicAPI;
 
-import javax.swing.*;
-import java.awt.*;
-import javax.swing.border.Border;
-
-import GraphicAPI.GeometricShapes.Circle;
 import GraphicAPI.GeometricShapes.Rectangle;
+import GraphicAPI.GeometricShapes.Circle;
+import GraphicAPI.GeometricShapes.ComplexShape;
 import GraphicAPI.GeometricShapes.Shape;
-
+import javax.swing.*;
+import javax.swing.border.Border;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.awt.geom.Area;
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 
 public class GUI extends JFrame {
-    ArrayList<Shape> shapes;
+	ArrayList<Shape> shapes;
     ArrayList<Shape> groupShape;
     private JFrame frame;
     private String selectedShape;
@@ -25,14 +26,12 @@ public class GUI extends JFrame {
     private boolean deleteMode = false;
     private boolean selectMode = false;
     private boolean addMode = false;
-    private boolean reziseMode = false;
-    int handleSize = 6;
+    private boolean resizeMode = false;
+    int handleSize = 10;
     private boolean handleClicked = false;
     private boolean movingShape = false; // Ajout d'un indicateur pour le déplacement d'une forme
-    private int selectedShapeIndex = -1;
     private int selectRectX1, selectRectY1, selectRectX2, selectRectY2;
     private int selectStartX, selectStartY, selectEndX, selectEndY;
-    private Rectangle selectionRect = null;
 
     public static void main(String[] args) {
         EventQueue.invokeLater(new Runnable() {
@@ -52,10 +51,30 @@ public class GUI extends JFrame {
 
     public void paint(JPanel drawingPanel) {
         Graphics g = drawingPanel.getGraphics();
+        if (g == null) {
+            return; // Si le contexte graphique est null, ne rien faire
+        }
+        
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, drawingPanel.getWidth(), drawingPanel.getHeight());
+
         for (Shape shape : shapes) {
-            if (shape instanceof Circle) {
+            if (shape instanceof ComplexShape) {
+                ComplexShape complexShape = (ComplexShape) shape;
+                complexShape.draw((Graphics2D) g); // Dessiner la forme complexe
+                // Dessiner les bordures de sélection des sous-formes
+                g.setColor(Color.RED);
+                for (Shape subShape : complexShape.getShapes()) {
+                    if (subShape instanceof Circle) {
+                        Circle circle = (Circle) subShape;
+                        circle.paintWithOperationBorder(drawingPanel);
+                    } else if (subShape instanceof Rectangle) {
+                        Rectangle rectangle = (Rectangle) subShape;
+                        rectangle.paintWithOperationBorder(drawingPanel);
+                    }
+                    // Ajoutez d'autres conditions pour les autres types de formes si nécessaire
+                }
+            } else if (shape instanceof Circle) {
                 Circle circle = (Circle) shape;
                 circle.paint(drawingPanel);
             } else if (shape instanceof Rectangle) {
@@ -63,6 +82,73 @@ public class GUI extends JFrame {
                 rectangle.paint(drawingPanel);
             }
         }
+
+        if (selectMode) {
+            g.setColor(new Color(0, 0, 255, 100));
+            int width = Math.abs(selectEndX - selectStartX);
+            int height = Math.abs(selectEndY - selectStartY);
+            int x = Math.min(selectStartX, selectEndX);
+            int y = Math.min(selectStartY, selectEndY);
+            g.fillRect(x, y, width, height);
+            
+        }
+        if (resizeMode) paintSelectionHandles(g);
+        g.setColor(Color.BLUE);
+        for (Shape shape : groupShape) {
+            if (shape instanceof ComplexShape) {
+                ComplexShape complexShape = (ComplexShape) shape;
+                complexShape.drawBorder((Graphics2D) g,drawingPanel); // Dessiner la forme complexe
+            }
+            
+            else if(shape instanceof Rectangle) {
+                Rectangle rectangle = (Rectangle) shape;
+                rectangle.paintWithSelectionBorder(drawingPanel);
+            } else if (shape instanceof Circle) {
+                Circle circle = (Circle) shape;
+                circle.paintWithSelectionBorder(drawingPanel);
+            }
+        }
+    }
+    private void paintSelectionHandles(Graphics g) {
+        if (groupShape.size() > 0) {
+            g.setColor(Color.BLACK);
+            int selectRectX1 = groupShape.get(0).getX();
+            int selectRectY1 = groupShape.get(0).getY();
+            int selectRectX2 = groupShape.get(0).getX() + groupShape.get(0).getWidth();
+            int selectRectY2 = groupShape.get(0).getY() + groupShape.get(0).getHeight();
+
+            g.fillRect(selectRectX1 - handleSize / 2, selectRectY1 - handleSize / 2, handleSize, handleSize); // Top-left corner
+            g.fillRect(selectRectX2 - handleSize / 2, selectRectY1 - handleSize / 2, handleSize, handleSize); // Top-right corner
+            g.fillRect(selectRectX1 - handleSize / 2, selectRectY2  - handleSize / 2, handleSize, handleSize); // Bottom-left corner
+            g.fillRect(selectRectX2 - handleSize / 2, selectRectY2  - handleSize / 2, handleSize, handleSize); // Bottom-right corner
+        }
+    }
+
+    private void paintComplexShapeOnly(JPanel drawingPanel) {
+        Graphics g = drawingPanel.getGraphics();
+        if (g == null) {
+            return;
+        }
+
+        g.setColor(Color.WHITE);
+        g.fillRect(0, 0, drawingPanel.getWidth(), drawingPanel.getHeight());
+
+        Shape lastShape = null; // Stocker la dernière forme complexe
+
+        for (Shape shape : shapes) {
+            if (shape instanceof ComplexShape) {
+                lastShape = shape; // Mettre à jour la dernière forme complexe
+            } else {
+                 paint(drawingPanel); // Dessiner les autres formes
+            }
+        }
+
+        // Dessiner la dernière forme complexe uniquement si elle existe
+        if (lastShape != null) {
+            ComplexShape lastComplexShape = (ComplexShape) lastShape;
+            lastComplexShape.draw((Graphics2D) g);
+        }
+
         if (selectMode) {
             g.setColor(new Color(0, 0, 255, 100));
             int width = Math.abs(selectEndX - selectStartX);
@@ -85,15 +171,15 @@ public class GUI extends JFrame {
         }
         g.setColor(Color.BLUE);
         for (Shape shape : groupShape) {
-            if (shape instanceof Rectangle) {
-                Rectangle rectangle = (Rectangle) shape;
-                rectangle.paintWithSelectionBorder(drawingPanel);
-            } else if (shape instanceof Circle) {
-                Circle circle = (Circle) shape;
-                circle.paintWithSelectionBorder(drawingPanel);
+            if (shape instanceof ComplexShape) {
+                ComplexShape complexShape = (ComplexShape) shape;
+                complexShape.drawBorder((Graphics2D) g, drawingPanel); // Dessiner la bordure de la forme complexe
             }
+            
+            
         }
     }
+
 
     public GUI() {
         shapes = new ArrayList<>();
@@ -124,6 +210,15 @@ public class GUI extends JFrame {
         toolBar.add(newButtonSelect);
         toolBar.add(newButtonAdd);
         toolBar.add(newButtonDel);
+
+        toolBar.addSeparator();
+
+        JButton differenceButton = new JButton("Difference");
+        JButton unionButton = new JButton("Union");
+        JButton intersectionButton = new JButton("Intersection");
+        toolBar.add(differenceButton);
+        toolBar.add(unionButton);
+        toolBar.add(intersectionButton);
 
         toolBar.addSeparator();
 
@@ -163,87 +258,170 @@ public class GUI extends JFrame {
                 } else if (selectMode) {
                     for (Shape shape : shapes) {
                         if (shape.contains(e.getPoint())) {
-                            groupShape.add(shape);
-                            paint(drawingPanel);
-                            return;
+                        	if (shape instanceof ComplexShape) {
+                                ComplexShape complexShape = (ComplexShape) shape;
+                                if (isComplexShapeSelected(complexShape, e.getPoint())) {
+                                    groupShape.add(complexShape);
+                                    paint(drawingPanel);
+                                    return;
+                                }
+                            }
+                        	else {
+                                groupShape.add(shape);
+                                paint(drawingPanel);
+                                return;
+                            }
                         }
                     }
-                } else if (movingShape) { // Ajout de la gestion du déplacement de la forme
+                } else if (movingShape) {
                     for (Shape shape : groupShape) {
                         if (shape.contains(e.getPoint())) {
-                            // Déplacer la forme en utilisant le décalage dx et dy
                             shape.setBounds(dx, dy);
                             movingShape = false;
-                            groupShape.clear(); // Effacer la sélection après le déplacement
+                            groupShape.clear();
                             paint(drawingPanel);
                             return;
                         }
                     }
+                }else {
+                    // Logique de désélection des formes complexes
+                    if (!isInsideAnyShape(e.getPoint())) {
+                        groupShape.clear(); // Désélectionner toutes les formes complexes
+                        paint(drawingPanel); // Redessiner pour mettre à jour l'affichage
+                    }
                 }
+                
             }
-
+            private boolean isInsideAnyShape(Point point) {
+                for (Shape shape : shapes) {
+                    if (shape.contains(point)) {
+                        return true; // Le point est à l'intérieur d'une forme, pas de désélection
+                    }
+                }
+                return false; // Aucune forme n'a été trouvée, désélectionner toutes les formes complexes
+            }
+                
+            private boolean isComplexShapeSelected(ComplexShape complexShape, Point point) {
+                    for (Shape subShape : complexShape.getShapes()) {
+                        if (subShape.contains(point)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+          
             @Override
             public void mousePressed(MouseEvent e) {
                 if (selectMode) {
-                    // Logique de sélection en cours
-                    paint(drawingPanel);
-                    selectStartX = e.getX();
+                    // Si le mode de sélection est activé
+                    resizeMode = true; // Activer le mode de redimensionnement par défaut
+                    paint(drawingPanel); // Redessine pour effacer la sélection précédente
+                    selectStartX = e.getX(); // Enregistre les coordonnées du clic initial
                     selectStartY = e.getY();
                     selectEndX = e.getX();
                     selectEndY = e.getY();
                 } else {
                     if (deleteMode) {
-                        // Logique de suppression
-                        return;
+                        // Si le mode de suppression est activé
+                        for (int i = shapes.size() - 1; i >= 0; i--) {
+                            // Parcourt les formes de la dernière à la première
+                            if (shapes.get(i).contains(e.getPoint())) {
+                                // Si la forme actuelle contient le point du clic
+                                shapes.remove(i); // Supprime la forme
+                                paint(drawingPanel); // Redessine pour mettre à jour l'affichage
+                                return; // Sort de la méthode après avoir supprimé la première forme trouvée
+                            }
+                        }
                     }
+
                     if (addMode) {
-                        System.out.println("Add Mode: " + addMode);
-                        // Logique d'ajout de forme
-                        paint(drawingPanel);
+                        // Si le mode d'ajout de forme est activé
+                        paint(drawingPanel); // Redessine pour effacer toute forme précédente en cours de dessin
                         if (selectedShape.equals("Circle")) {
                             if (!firstClickDone) {
-                                x1 = e.getX();
+                                x1 = e.getX(); // Enregistre les coordonnées du premier clic
                                 y1 = e.getY();
-                                firstClickDone = true;
+                                firstClickDone = true; // Marque le premier clic comme étant effectué
                             }
                         } else if (selectedShape.equals("Rectangle")) {
                             if (!firstClickDone) {
-                                x1 = e.getX();
+                                x1 = e.getX(); // Enregistre les coordonnées du premier clic
                                 y1 = e.getY();
-                                firstClickDone = true;
+                                firstClickDone = true; // Marque le premier clic comme étant effectué
                             }
                         }
                     } else if (groupShape.size() > 0) {
-                    
-                                if (isHandleClicked(e.getX(), e.getY(), selectRectX1 - handleSize / 2, selectRectY1 - handleSize / 2) ||
-                                    isHandleClicked(e.getX(), e.getY(), selectRectX2 - handleSize / 2, selectRectY1 - handleSize / 2) ||
-                                    isHandleClicked(e.getX(), e.getY(), selectRectX1 - handleSize / 2, selectRectY2  - handleSize / 2) ||
-                                    isHandleClicked(e.getX(), e.getY(), selectRectX2 - handleSize / 2, selectRectY2  - handleSize / 2)) {
-                                    reziseMode = true;
-                                    handleClicked = true;
-                                }
+                        // Si une forme du groupe est sélectionnée
+                        boolean clickedInsideShape = false;
+                        for (Shape shape : groupShape) {
+                            // Vérifie si le clic est à l'intérieur d'une forme du groupe
+                            if (shape.contains(e.getPoint())) {
+                                clickedInsideShape = true;
+                                break; // Sort de la boucle si une forme est trouvée
                             }
-
-                        if (!handleClicked) {
-                            // Si le clic n'est pas sur une poignée, commencez une nouvelle sélection
-                            groupShape.clear();
-                            selectStartX = e.getX();
+                        }
+                        if (clickedInsideShape) {
+                            // Si le clic est à l'intérieur d'une forme du groupe
+                            x1 = e.getX(); // Enregistre les coordonnées du premier clic pour le déplacement
+                            y1 = e.getY();
+                            if (isNearBorder(groupShape.get(0), e.getPoint())) {
+                                // Si le clic est assez proche de la bordure de la forme
+                                resizeMode = true; // Activer le mode de redimensionnement
+                                movingShape = false; // Désactiver le mode de déplacement
+                            } else {
+                                movingShape = true; // Activer le mode de déplacement de forme
+                                resizeMode = false; // Désactiver le mode de redimensionnement
+                            }
+                        } else {
+                            // Si le clic est à l'extérieur de toutes les formes du groupe
+                            groupShape.clear(); // Efface la sélection de groupe
+                            selectMode = true; // Active le mode de sélection
+                            selectStartX = e.getX(); // Enregistre les coordonnées du premier clic de sélection
                             selectStartY = e.getY();
                             selectEndX = e.getX();
                             selectEndY = e.getY();
-                            paint(drawingPanel);
+                            if (addMode || deleteMode) {
+                                // Désactive les modes d'ajout ou de suppression si l'un d'eux est actif
+                                addMode = false;
+                                deleteMode = false;
+                            }
+                            paint(drawingPanel); // Redessine pour afficher la zone de sélection
                         }
+                    } else {
+                        // Si aucune forme ou aucun groupe n'est sélectionné
+                        selectMode = true; // Active le mode de sélection
+                        selectStartX = e.getX(); // Enregistre les coordonnées du premier clic de sélection
+                        selectStartY = e.getY();
+                        selectEndX = e.getX();
+                        selectEndY = e.getY();
+                        paint(drawingPanel); // Redessine pour afficher la zone de sélection
+                    }
                 }
             }
+
+
+            // Méthode pour vérifier si le clic est près des bords d'une forme
+            public boolean isNearBorder(GeometricShapes.Shape shape, Point clickPoint) {
+                int threshold = 10; // Seuil de distance par rapport au bord
+              
+                return clickPoint.x <= shape.getX() + threshold || 
+                       clickPoint.x >= shape.getX() + shape.getWidth() - threshold ||
+                       clickPoint.y <= shape.getY() + threshold || 
+                       clickPoint.y >= shape.getY() + shape.getHeight() - threshold;
+            }
+
+
             @Override
             public void mouseReleased(MouseEvent e) {
                 if (selectMode) {
-                    selectShapesInArea(); // Désactiver le mode de sélection
+                    selectShapesInArea();
                     selectMode = false;
                     resetCoordinates();
                     paint(drawingPanel);
+                    movingShape=false;
+                    resizeMode=true;
                 } else {
-                    if (!deleteMode && firstClickDone && addMode) {
+                    if (!deleteMode && firstClickDone ) {
                         if (selectedShape.equals("Circle")) {
                             int radius = (int) Math.sqrt(Math.pow(e.getX() - x1, 2) + Math.pow(e.getY() - y1, 2));
                             int[] circleParams = {x1 - radius, y1 - radius, radius * 2};
@@ -262,12 +440,24 @@ public class GUI extends JFrame {
                             GeometricShapes.Rectangle newRectangle = geometricShapes.new Rectangle(rectangleParams);
                             shapes.add(newRectangle);
                             paint(drawingPanel);
+                        }  else if (movingShape) {
+                            // Calculer le déplacement pour chaque sous-forme de la forme complexe sélectionnée
+                            dx = e.getX() - x1;
+                            dy = e.getY() - y1;
+                            for (Shape shape : groupShape) {
+                                shape.setBounds(dx, dy); // Déplacer chaque sous-forme
+                            }
+                            // Mettre à jour les limites de la forme complexe elle-même
+                            ((ComplexShape) groupShape.get(0)).updateBounds(dx, dy);
+                            x1 = e.getX();
+                            y1 = e.getY();
+                            paint(drawingPanel); // Redessiner pour afficher les formes déplacées
                         }
-
+                            
+                           
                         firstClickDone = false;
                         
                     }
-                    paint(drawingPanel);
                 }
             }
 
@@ -307,55 +497,42 @@ public class GUI extends JFrame {
                             g.drawRect(x, y, width, height);
                         }
                     }
-                    else if (movingShape) { // Déplacer la forme sélectionnée
-                        // Calculer le décalage dx et dy pour le déplacement
-                        dx = e.getX() - x1;
-                        dy = e.getY() - y1;
-                        // Mettre à jour les coordonnées de la forme sélectionnée
+                    else if (resizeMode) {
+                        int dx = e.getX() - x1;
+                        int dy = e.getY() - y1;
+                        for (Shape selectedShape : groupShape) {
+                            if (selectedShape instanceof Circle) {
+                                Circle circle = (Circle) selectedShape;
+                                circle.resize(dx, dy);
+                            } else if (selectedShape instanceof Rectangle) {
+                                Rectangle rectangle = (Rectangle) selectedShape;
+                                rectangle.resize(dx, dy);
+                            }
+                        }
+                        x1 = e.getX();
+                        y1 = e.getY();
+                        paint(drawingPanel);
+                    } else if (movingShape) {
+                        int dx = e.getX() - x1;
+                        int dy = e.getY() - y1;
                         for (Shape shape : groupShape) {
                             shape.setBounds(dx,dy);
                         }
                         x1 = e.getX();
                         y1 = e.getY();
                         paint(drawingPanel);
-                    }else if (groupShape.size() > 0) {// Logique de redimensionnement de la forme sélectionnée
-                        if (reziseMode) {
-                            int dx = e.getX() - x1;
-                            int dy = e.getY() - y1;
-                            for (Shape selectedShape : groupShape) {
-                                    if (selectedShape instanceof Circle) {
-                                        Circle circle = (Circle) selectedShape;
-                                        if (groupShape.contains(circle)) {
-                                            circle.rezise(dx);
-                                        }
-                                    } else if (selectedShape instanceof Rectangle) {
-                                        Rectangle rectangle = (Rectangle) selectedShape;
-                                        if (groupShape.contains(rectangle)) {
-                                            rectangle.rezise(dx, dy);
-                                        }
-                                    }
-                                
-                            }
-                            x1 = e.getX();
-                            y1 = e.getY();
-                            paint(drawingPanel);
-                        }
-                        if (!handleClicked) {
-                            // Logique de déplacement de la forme sélectionnée
-                            int dx = e.getX() - x1;
-                            int dy = e.getY() - y1;
-                            for (Shape selectedShape : groupShape) {
-                                selectedShape.setBounds(dx, dy);
-                            }
-                            x1 = e.getX();
-                            y1 = e.getY();
-                            paint(drawingPanel);
-                        }
+                    
+                    }else {
+                        // Mettre à jour les limites de la forme complexe elle-même
+                        ((ComplexShape) groupShape.get(0)).updateBounds(dx, dy);
+                        x1 = e.getX();
+                        y1 = e.getY();
+                        // Redessiner uniquement la forme complexe sans réafficher les sous-formes
+                        paintComplexShapeOnly(drawingPanel);
+
                     }
                 }
-                
-            
-        }
+            }
 
             @Override
             public void mouseMoved(MouseEvent e) {
@@ -368,18 +545,16 @@ public class GUI extends JFrame {
                 deleteMode = newButtonDel.isSelected();
                 selectMode = false;
                 addMode = false;
-                movingShape = false; // Désactiver le déplacement lors de la suppression
+                movingShape = false;
                 if (deleteMode) {
-                    // Supprimer les formes sélectionnées
                     shapes.removeAll(groupShape);
-                    groupShape.clear(); // Effacer la sélection en mode delete
+                    groupShape.clear();
                 }
-               
-                selectStartX = selectStartY = selectEndX = selectEndY = 0;// Effacer la sélection en mode delete
-                
+
+                selectStartX = selectStartY = selectEndX = selectEndY = 0;
                 paint(drawingPanel);
                 newButtonAdd.setSelected(false);
-                
+
             }
         });
 
@@ -390,11 +565,11 @@ public class GUI extends JFrame {
                 newButtonAdd.setSelected(false);
                 deleteMode = false;
                 addMode = false;
-                movingShape = false; // Désactiver le déplacement lors de la sélection
-                groupShape.clear(); // Effacer la sélection en mode sélection
+                movingShape = false;
+                groupShape.clear();
                 selectStartX = selectStartY = selectEndX = selectEndY = 0;
                 paint(drawingPanel);
-                
+
             }
         });
 
@@ -402,22 +577,43 @@ public class GUI extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 addMode = newButtonAdd.isSelected();
-                System.out.println("Add Mode: " + addMode);
                 newButtonDel.setSelected(false);
                 newButtonSelect.setSelected(false);
                 deleteMode = false;
                 selectMode = false;
-                movingShape = false; // Désactiver le déplacement lors de l'ajout
-                groupShape.clear(); // Effacer la sélection en mode ajout
+                movingShape = false;
+                groupShape.clear();
                 paint(drawingPanel);
+
+            }
+        });
+
+        differenceButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                performDifference(drawingPanel);
                 
             }
         });
 
-        // Méthode pour désélectionner tous les boutons
-      
+        unionButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                performUnion(drawingPanel);
+            }
+        });
+
+        intersectionButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                performIntersection(drawingPanel);
+            }
+        });
+
     }
-    
+    private boolean isHandleClicked(int mouseX, int mouseY, int handleX, int handleY) {
+        return mouseX >= handleX && mouseX <= handleX + handleSize && mouseY >= handleY && mouseY <= handleY + handleSize;
+    }
     private void selectShapesInArea() {
         groupShape.clear();
         int[] rectangleParams = {Math.min(selectStartX, selectEndX), Math.min(selectStartY, selectEndY),
@@ -427,27 +623,29 @@ public class GUI extends JFrame {
 
 
         for (Shape shape : shapes) {
+        	if (shape instanceof ComplexShape) {
+                ComplexShape complexShape = (ComplexShape) shape;
+                if (isComplexShapeInArea(complexShape,selectionRect)) groupShape.add(complexShape);
+        	}
             if (shape instanceof Circle) {
                 Circle circle = (Circle) shape;
-                if (isCircleInArea(circle)) {
-                    groupShape.add(circle);
-                }
+                if (isCircleInArea(circle)) groupShape.add(circle);
+                
             } else if (shape instanceof Rectangle) {
                 Rectangle rectangle = (Rectangle) shape;
-                if (rectangle.getBounds().intersects(selectionRect.getBounds())) {
+                if (rectangle.getBounds().intersects(selectionRect.getBounds())) 
                     groupShape.add(rectangle);
-                }
+                
             }
         }
+        System.out.println("Number of selected shapes: " + groupShape.size());
     }
-    private boolean isHandleClicked(int mouseX, int mouseY, int handleX, int handleY) {
-        return Math.abs(mouseX - handleX) <= handleSize / 2 && Math.abs(mouseY - handleY) <= handleSize / 2;
-    }
+    
 
     private boolean isCircleInArea(Circle circle) {
-        int centerX = circle.getCenterX();
-        int centerY = circle.getCenterY();
-        int radius = circle.getRadius();
+        int centerX = circle.getX();
+        int centerY = circle.getY();
+        int radius = circle.getWidth();
 
         int areaX = Math.min(selectStartX, selectEndX);
         int areaY = Math.min(selectStartY, selectEndY);
@@ -467,5 +665,316 @@ public class GUI extends JFrame {
             }
         }
         return false;
+    }
+    private boolean isComplexShapeInArea(ComplexShape complexShape, GeometricShapes.Rectangle selectionRect) {
+    	 System.out.println("Checking if complex shape is selected");
+    	    System.out.println("Mouse click coordinates: (" + x1 + ", " + y1 + ")");
+    	    System.out.println("Complex shape bounds: " + complexShape.getBounds());
+    	   for (Shape subShape : complexShape.getShapes()) {
+            if (subShape instanceof Circle) {
+                Circle circle = (Circle) subShape;
+                if (isCircleInArea(circle)) {
+                    return true;
+                }
+            } else if (subShape instanceof Rectangle) {
+                Rectangle rectangle = (Rectangle) subShape;
+                if (rectangle.getBounds().intersects(selectionRect.getBounds())) {
+                    return true;
+                }
+            }
+            // Ajoutez d'autres conditions pour les autres types de formes si nécessaire
+        }
+        return false;
+    }
+    private void performDifference(JPanel drawingPanel) {
+    	if (groupShape.size() != 2) {
+            JOptionPane.showMessageDialog(frame, "Select exactly two shapes for difference operation.");
+            return;
+        }
+
+        Shape shape1 = groupShape.get(0);
+        Shape shape2 = groupShape.get(1);
+
+        if (shape1 != null && shape2 != null) { // Ajoutez cette vérification de nullité
+            if (shape1 instanceof Circle && shape2 instanceof Circle) {
+                Circle circle1 = (Circle) shape1;
+                Circle circle2 = (Circle) shape2;
+                if (shape1 != null && shape2 != null) {
+                Area area1 = new Area(circle1.getShape());
+                Area area2 = new Area(circle2.getShape());
+                
+                area1.subtract(area2);
+                
+                if (!area1.isEmpty()) {
+                    // Create a list of shapes contained in the complex shape
+                    ArrayList<Shape> complexShapes = new ArrayList<>();
+                    complexShapes.add(circle1);
+                    complexShapes.add(circle2);
+
+                    // Create a new ComplexShape with the list of contained shapes
+               
+                    GeometricShapes.ComplexShape unionShape = new GeometricShapes().new ComplexShape(area1, complexShapes);
+                    shapes.add(unionShape);
+                    paint(drawingPanel);
+                }} else {
+                    JOptionPane.showMessageDialog(frame, "The resulting shape is empty.");
+                }
+            } else if (shape1 instanceof Rectangle && shape2 instanceof Rectangle) {
+                Rectangle rect1 = (Rectangle) shape1;
+                Rectangle rect2 = (Rectangle) shape2;
+
+                if (rect1.getShape() != null && rect2.getShape() != null) {
+                    Area area1 = new Area(shape1.getShape());
+                    Area area2 = new Area(shape2.getShape());
+                    
+                    area1.subtract(area2);
+
+                    if (!area1.isEmpty()) {
+                        // Create a list of shapes contained in the complex shape
+                        ArrayList<Shape> complexShapes = new ArrayList<>();
+                        complexShapes.add(rect1);
+                        complexShapes.add(rect2);
+
+                        // Create a new ComplexShape with the list of contained shapes
+                        GeometricShapes.ComplexShape unionShape = new GeometricShapes().new ComplexShape(area1, complexShapes);
+                        shapes.add(unionShape);
+                        paint(drawingPanel);
+                    } else {
+                        JOptionPane.showMessageDialog(frame, "The resulting shape is empty.");
+                    }
+                }
+            } else if ((shape1 instanceof Circle && shape2 instanceof Rectangle) ||
+                    (shape1 instanceof Rectangle && shape2 instanceof Circle)) {
+                performCircleRectangleDifference(shape1, shape2, drawingPanel);
+            } else {
+                JOptionPane.showMessageDialog(frame, "Difference operation is supported only between a Circle and a Rectangle.");
+            }
+        } else {
+            JOptionPane.showMessageDialog(frame, "One of the selected shapes is null.");
+        }
+    }
+    private void performCircleRectangleDifference(Shape shape1, Shape shape2, JPanel drawingPanel) {
+        Area area1;
+        Area area2;
+
+        if (shape1 instanceof Circle) {
+            Circle circle = (Circle) shape1;
+            area1 = new Area(circle.getShape());
+            area2 = new Area(((Rectangle) shape2).getShape());
+        } else {
+            Circle circle = (Circle) shape2;
+            area1 = new Area(circle.getShape());
+            area2 = new Area(((Rectangle) shape1).getShape());
+        }
+
+        area1.subtract(area2);
+
+        if (!area1.isEmpty()) {
+            ArrayList<Shape> complexShapes = new ArrayList<>();
+            complexShapes.add(shape1);
+            complexShapes.add(shape2);
+
+            GeometricShapes.ComplexShape differenceShape = new GeometricShapes().new ComplexShape(area1, complexShapes);
+            shapes.add(differenceShape);
+            paint(drawingPanel);
+        } else {
+            JOptionPane.showMessageDialog(frame, "The resulting shape is empty.");
+        }
+    }
+
+
+
+
+    
+    private void performUnion(JPanel drawingPanel) {
+    	if (groupShape.size() != 2) {
+            JOptionPane.showMessageDialog(frame, "Select exactly two shapes for difference operation.");
+            return;
+        }
+
+        Shape shape1 = groupShape.get(0);
+        Shape shape2 = groupShape.get(1);
+
+        if (shape1 != null && shape2 != null) { // Ajoutez cette vérification de nullité
+            if (shape1 instanceof Circle && shape2 instanceof Circle) {
+                Circle circle1 = (Circle) shape1;
+                Circle circle2 = (Circle) shape2;
+                if (shape1 != null && shape2 != null) {
+                Area area1 = new Area(circle1.getShape());
+                Area area2 = new Area(circle2.getShape());
+                
+                area1.add(area2);
+                
+                if (!area1.isEmpty()) {
+                    // Create a list of shapes contained in the complex shape
+                    ArrayList<Shape> complexShapes = new ArrayList<>();
+                    complexShapes.add(circle1);
+                    complexShapes.add(circle2);
+
+                    // Create a new ComplexShape with the list of contained shapes
+               
+                    GeometricShapes.ComplexShape unionShape = new GeometricShapes().new ComplexShape(area1, complexShapes);
+                    shapes.add(unionShape);
+                    paint(drawingPanel);
+                }} else {
+                    JOptionPane.showMessageDialog(frame, "The resulting shape is empty.");
+                }
+            } else if (shape1 instanceof Rectangle && shape2 instanceof Rectangle) {
+                Rectangle rect1 = (Rectangle) shape1;
+                Rectangle rect2 = (Rectangle) shape2;
+
+                if (rect1.getShape() != null && rect2.getShape() != null) {
+                    Area area1 = new Area(shape1.getShape());
+                    Area area2 = new Area(shape2.getShape());
+                    
+                    area1.add(area2);
+
+                    if (!area1.isEmpty()) {
+                        // Create a list of shapes contained in the complex shape
+                        ArrayList<Shape> complexShapes = new ArrayList<>();
+                        complexShapes.add(rect1);
+                        complexShapes.add(rect2);
+
+                        // Create a new ComplexShape with the list of contained shapes
+                        GeometricShapes.ComplexShape unionShape = new GeometricShapes().new ComplexShape(area1, complexShapes);
+                        shapes.add(unionShape);
+                        paint(drawingPanel);
+                    } else {
+                        JOptionPane.showMessageDialog(frame, "The resulting shape is empty.");
+                    }
+                }
+            } else if ((shape1 instanceof Circle && shape2 instanceof Rectangle) ||
+                    (shape1 instanceof Rectangle && shape2 instanceof Circle)) {
+                performCircleRectangleUnion(shape1, shape2, drawingPanel);
+            } else {
+                JOptionPane.showMessageDialog(frame, "Difference operation is supported only between a Circle and a Rectangle.");
+            }
+        } else {
+            JOptionPane.showMessageDialog(frame, "One of the selected shapes is null.");
+        }
+    }
+    private void performCircleRectangleUnion(Shape shape1, Shape shape2, JPanel drawingPanel) {
+        Area area1;
+        Area area2;
+
+        if (shape1 instanceof Circle) {
+            Circle circle = (Circle) shape1;
+            area1 = new Area(circle.getShape());
+            area2 = new Area(((Rectangle) shape2).getShape());
+        } else {
+            Circle circle = (Circle) shape2;
+            area1 = new Area(circle.getShape());
+            area2 = new Area(((Rectangle) shape1).getShape());
+        }
+
+        area1.add(area2);
+
+        if (!area1.isEmpty()) {
+            ArrayList<Shape> complexShapes = new ArrayList<>();
+            complexShapes.add(shape1);
+            complexShapes.add(shape2);
+
+            GeometricShapes.ComplexShape unionShape = new GeometricShapes().new ComplexShape(area1, complexShapes);
+            shapes.add(unionShape);
+            paint(drawingPanel);
+        } else {
+            JOptionPane.showMessageDialog(frame, "The resulting shape is empty.");
+        }
+    }
+
+    private void performIntersection(JPanel drawingPanel) {
+    	if (groupShape.size() != 2) {
+            JOptionPane.showMessageDialog(frame, "Select exactly two shapes for difference operation.");
+            return;
+        }
+
+        Shape shape1 = groupShape.get(0);
+        Shape shape2 = groupShape.get(1);
+
+        if (shape1 != null && shape2 != null) { // Ajoutez cette vérification de nullité
+            if (shape1 instanceof Circle && shape2 instanceof Circle) {
+                Circle circle1 = (Circle) shape1;
+                Circle circle2 = (Circle) shape2;
+                if (shape1 != null && shape2 != null) {
+                Area area1 = new Area(circle1.getShape());
+                Area area2 = new Area(circle2.getShape());
+                
+                area1.intersect(area2);
+                
+                if (!area1.isEmpty()) {
+                    // Create a list of shapes contained in the complex shape
+                    ArrayList<Shape> complexShapes = new ArrayList<>();
+                    complexShapes.add(circle1);
+                    complexShapes.add(circle2);
+
+                    // Create a new ComplexShape with the list of contained shapes
+               
+                    GeometricShapes.ComplexShape intersectionShape = new GeometricShapes().new ComplexShape(area1, complexShapes);
+                    shapes.add(intersectionShape);
+                    paint(drawingPanel);
+                }} else {
+                    JOptionPane.showMessageDialog(frame, "The resulting shape is empty.");
+                }
+            } else if (shape1 instanceof Rectangle && shape2 instanceof Rectangle) {
+                Rectangle rect1 = (Rectangle) shape1;
+                Rectangle rect2 = (Rectangle) shape2;
+
+                if (rect1.getShape() != null && rect2.getShape() != null) {
+                    Area area1 = new Area(shape1.getShape());
+                    Area area2 = new Area(shape2.getShape());
+                    
+                    area1.intersect(area2);
+
+                    if (!area1.isEmpty()) {
+                        // Create a list of shapes contained in the complex shape
+                        ArrayList<Shape> complexShapes = new ArrayList<>();
+                        complexShapes.add(rect1);
+                        complexShapes.add(rect2);
+
+                        // Create a new ComplexShape with the list of contained shapes
+                        GeometricShapes.ComplexShape intersectionShape = new GeometricShapes().new ComplexShape(area1, complexShapes);
+                        shapes.add(intersectionShape);
+                        paint(drawingPanel);
+                    } else {
+                        JOptionPane.showMessageDialog(frame, "The resulting shape is empty.");
+                    }
+                }
+            } else if ((shape1 instanceof Circle && shape2 instanceof Rectangle) ||
+                    (shape1 instanceof Rectangle && shape2 instanceof Circle)) {
+                performCircleRectangleIntersection(shape1, shape2, drawingPanel);
+            } else {
+                JOptionPane.showMessageDialog(frame, "Difference operation is supported only between a Circle and a Rectangle.");
+            }
+        } else {
+            JOptionPane.showMessageDialog(frame, "One of the selected shapes is null.");
+        }
+    }
+    private void performCircleRectangleIntersection(Shape shape1, Shape shape2, JPanel drawingPanel) {
+        Area area1;
+        Area area2;
+
+        if (shape1 instanceof Circle) {
+            Circle circle = (Circle) shape1;
+            area1 = new Area(circle.getShape());
+            area2 = new Area(((Rectangle) shape2).getShape());
+        } else {
+            Circle circle = (Circle) shape2;
+            area1 = new Area(circle.getShape());
+            area2 = new Area(((Rectangle) shape1).getShape());
+        }
+
+        area1.intersect(area2);
+
+        if (!area1.isEmpty()) {
+            ArrayList<Shape> complexShapes = new ArrayList<>();
+            complexShapes.add(shape1);
+            complexShapes.add(shape2);
+
+            GeometricShapes.ComplexShape intersectionShape = new GeometricShapes().new ComplexShape(area1, complexShapes);
+            shapes.add(intersectionShape);
+            paint(drawingPanel);
+        } else {
+            JOptionPane.showMessageDialog(frame, "The resulting shape is empty.");
+        }
     }
 }
