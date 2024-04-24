@@ -24,7 +24,8 @@ public class GeometricShapes extends JFrame {
     }
 
     class Circle implements Shape, Serializable {
-        private int x;
+        private static final int MIN_RADIUS = 0;
+		private int x;
         private int y;
         private int r;
         private Color color;
@@ -92,11 +93,24 @@ public class GeometricShapes extends JFrame {
         }
 
         public void resize(int dx, int dy) {
-            // Ajuster le rayon du cercle
-            r += Math.max(dx, dy); // Augmenter le rayon
-            r = Math.max(r, 0); // S'assurer que le rayon est toujours positif ou nul
+            // Calculer la distance euclidienne entre les nouveaux et anciens points de redimensionnement
+            int distance = (int)Math.sqrt(dx * dx + dy * dy);
+            
+            // Vérifier la direction du redimensionnement
+            if (dx < 0 || dy < 0) {
+                // Diminution de la taille du cercle
+                if (r - distance >= MIN_RADIUS) {
+                    // Vérifier que le rayon résultant est supérieur ou égal au rayon minimum
+                    r -= distance;
+                } else {
+                    // Si le rayon résultant est inférieur au rayon minimum, redimensionner au rayon minimum
+                    r = MIN_RADIUS;
+                }
+            } else {
+                // Augmentation de la taille du cercle
+                r += distance;
+            }
         }
-
         @Override
         public int getX() {
             return x;
