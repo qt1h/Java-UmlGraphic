@@ -66,6 +66,10 @@ public class GeometricShapes extends JFrame {
 			this.x += dx;
 			this.y += dy;
 		}
+		public void rezise(int dr) {
+			this.r += dr;
+		}
+
 		
 		public void paintWithSelectionBorder(JPanel drawingPanel) {
 			Graphics2D g2d = (Graphics2D) drawingPanel.getGraphics();
@@ -139,6 +143,10 @@ public class GeometricShapes extends JFrame {
 		public void setBounds(int dx, int dy) {
 			this.x1 += dx;
 			this.y1 += dy;
+		}
+		public void rezise(int dw, int dh) {
+			this.width += dw;
+			this.height += dh;
 		}
 	}
     
