@@ -32,7 +32,12 @@ public class GUI extends JFrame {
     private boolean movingShape = false; // Ajout d'un indicateur pour le déplacement d'une forme
     private int selectRectX1, selectRectY1, selectRectX2, selectRectY2;
     private int selectStartX, selectStartY, selectEndX, selectEndY;
-
+    // Enum to represent different operations
+    private enum OperationType {
+        DIFFERENCE,
+        UNION,
+        INTERSECTION
+    }
     public static void main(String[] args) {
         EventQueue.invokeLater(new Runnable() {
             public void run() {
@@ -591,7 +596,7 @@ public class GUI extends JFrame {
         differenceButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                performDifference(drawingPanel);
+                performOperation(OperationType.DIFFERENCE,drawingPanel);
                 
             }
         });
@@ -599,21 +604,19 @@ public class GUI extends JFrame {
         unionButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                performUnion(drawingPanel);
+            	performOperation(OperationType.UNION,drawingPanel);
             }
         });
 
         intersectionButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                performIntersection(drawingPanel);
+            	performOperation(OperationType.INTERSECTION,drawingPanel);
             }
         });
 
     }
-    private boolean isHandleClicked(int mouseX, int mouseY, int handleX, int handleY) {
-        return mouseX >= handleX && mouseX <= handleX + handleSize && mouseY >= handleY && mouseY <= handleY + handleSize;
-    }
+    
     private void selectShapesInArea() {
         groupShape.clear();
         int[] rectangleParams = {Math.min(selectStartX, selectEndX), Math.min(selectStartY, selectEndY),
@@ -666,6 +669,7 @@ public class GUI extends JFrame {
         }
         return false;
     }
+    
     private boolean isComplexShapeInArea(ComplexShape complexShape, GeometricShapes.Rectangle selectionRect) {
     	 System.out.println("Checking if complex shape is selected");
     	    System.out.println("Mouse click coordinates: (" + x1 + ", " + y1 + ")");
@@ -686,295 +690,45 @@ public class GUI extends JFrame {
         }
         return false;
     }
-    private void performDifference(JPanel drawingPanel) {
-    	if (groupShape.size() != 2) {
-            JOptionPane.showMessageDialog(frame, "Select exactly two shapes for difference operation.");
-            return;
-        }
-
-        Shape shape1 = groupShape.get(0);
-        Shape shape2 = groupShape.get(1);
-
-        if (shape1 != null && shape2 != null) { // Ajoutez cette vérification de nullité
-            if (shape1 instanceof Circle && shape2 instanceof Circle) {
-                Circle circle1 = (Circle) shape1;
-                Circle circle2 = (Circle) shape2;
-                if (shape1 != null && shape2 != null) {
-                Area area1 = new Area(circle1.getShape());
-                Area area2 = new Area(circle2.getShape());
-                
-                area1.subtract(area2);
-                
-                if (!area1.isEmpty()) {
-                    // Create a list of shapes contained in the complex shape
-                    ArrayList<Shape> complexShapes = new ArrayList<>();
-                    complexShapes.add(circle1);
-                    complexShapes.add(circle2);
-
-                    // Create a new ComplexShape with the list of contained shapes
-               
-                    GeometricShapes.ComplexShape unionShape = new GeometricShapes().new ComplexShape(area1, complexShapes);
-                    shapes.add(unionShape);
-                    paint(drawingPanel);
-                }} else {
-                    JOptionPane.showMessageDialog(frame, "The resulting shape is empty.");
-                }
-            } else if (shape1 instanceof Rectangle && shape2 instanceof Rectangle) {
-                Rectangle rect1 = (Rectangle) shape1;
-                Rectangle rect2 = (Rectangle) shape2;
-
-                if (rect1.getShape() != null && rect2.getShape() != null) {
-                    Area area1 = new Area(shape1.getShape());
-                    Area area2 = new Area(shape2.getShape());
-                    
-                    area1.subtract(area2);
-
-                    if (!area1.isEmpty()) {
-                        // Create a list of shapes contained in the complex shape
-                        ArrayList<Shape> complexShapes = new ArrayList<>();
-                        complexShapes.add(rect1);
-                        complexShapes.add(rect2);
-
-                        // Create a new ComplexShape with the list of contained shapes
-                        GeometricShapes.ComplexShape unionShape = new GeometricShapes().new ComplexShape(area1, complexShapes);
-                        shapes.add(unionShape);
-                        paint(drawingPanel);
-                    } else {
-                        JOptionPane.showMessageDialog(frame, "The resulting shape is empty.");
-                    }
-                }
-            } else if ((shape1 instanceof Circle && shape2 instanceof Rectangle) ||
-                    (shape1 instanceof Rectangle && shape2 instanceof Circle)) {
-                performCircleRectangleDifference(shape1, shape2, drawingPanel);
-            } else {
-                JOptionPane.showMessageDialog(frame, "Difference operation is supported only between a Circle and a Rectangle.");
-            }
-        } else {
-            JOptionPane.showMessageDialog(frame, "One of the selected shapes is null.");
-        }
-    }
-    private void performCircleRectangleDifference(Shape shape1, Shape shape2, JPanel drawingPanel) {
-        Area area1;
-        Area area2;
-
-        if (shape1 instanceof Circle) {
-            Circle circle = (Circle) shape1;
-            area1 = new Area(circle.getShape());
-            area2 = new Area(((Rectangle) shape2).getShape());
-        } else {
-            Circle circle = (Circle) shape2;
-            area1 = new Area(circle.getShape());
-            area2 = new Area(((Rectangle) shape1).getShape());
-        }
-
-        area1.subtract(area2);
-
-        if (!area1.isEmpty()) {
-            ArrayList<Shape> complexShapes = new ArrayList<>();
-            complexShapes.add(shape1);
-            complexShapes.add(shape2);
-
-            GeometricShapes.ComplexShape differenceShape = new GeometricShapes().new ComplexShape(area1, complexShapes);
-            shapes.add(differenceShape);
-            paint(drawingPanel);
-        } else {
-            JOptionPane.showMessageDialog(frame, "The resulting shape is empty.");
-        }
-    }
-
-
-
-
     
-    private void performUnion(JPanel drawingPanel) {
-    	if (groupShape.size() != 2) {
-            JOptionPane.showMessageDialog(frame, "Select exactly two shapes for difference operation.");
+    private void performOperation(OperationType operation, JPanel drawingPanel) {
+        if (groupShape.size() != 2) {
+            JOptionPane.showMessageDialog(frame, "Select exactly two shapes for the operation.");
             return;
         }
 
         Shape shape1 = groupShape.get(0);
         Shape shape2 = groupShape.get(1);
 
-        if (shape1 != null && shape2 != null) { // Ajoutez cette vérification de nullité
-            if (shape1 instanceof Circle && shape2 instanceof Circle) {
-                Circle circle1 = (Circle) shape1;
-                Circle circle2 = (Circle) shape2;
-                if (shape1 != null && shape2 != null) {
-                Area area1 = new Area(circle1.getShape());
-                Area area2 = new Area(circle2.getShape());
-                
-                area1.add(area2);
-                
-                if (!area1.isEmpty()) {
-                    // Create a list of shapes contained in the complex shape
-                    ArrayList<Shape> complexShapes = new ArrayList<>();
-                    complexShapes.add(circle1);
-                    complexShapes.add(circle2);
+        if (shape1 != null && shape2 != null) {
+            Area area1 = new Area(shape1.getShape());
+            Area area2 = new Area(shape2.getShape());
 
-                    // Create a new ComplexShape with the list of contained shapes
-               
-                    GeometricShapes.ComplexShape unionShape = new GeometricShapes().new ComplexShape(area1, complexShapes);
-                    shapes.add(unionShape);
-                    paint(drawingPanel);
-                }} else {
-                    JOptionPane.showMessageDialog(frame, "The resulting shape is empty.");
-                }
-            } else if (shape1 instanceof Rectangle && shape2 instanceof Rectangle) {
-                Rectangle rect1 = (Rectangle) shape1;
-                Rectangle rect2 = (Rectangle) shape2;
-
-                if (rect1.getShape() != null && rect2.getShape() != null) {
-                    Area area1 = new Area(shape1.getShape());
-                    Area area2 = new Area(shape2.getShape());
-                    
+            switch (operation) {
+                case DIFFERENCE:
+                    area1.subtract(area2);
+                    break;
+                case UNION:
                     area1.add(area2);
-
-                    if (!area1.isEmpty()) {
-                        // Create a list of shapes contained in the complex shape
-                        ArrayList<Shape> complexShapes = new ArrayList<>();
-                        complexShapes.add(rect1);
-                        complexShapes.add(rect2);
-
-                        // Create a new ComplexShape with the list of contained shapes
-                        GeometricShapes.ComplexShape unionShape = new GeometricShapes().new ComplexShape(area1, complexShapes);
-                        shapes.add(unionShape);
-                        paint(drawingPanel);
-                    } else {
-                        JOptionPane.showMessageDialog(frame, "The resulting shape is empty.");
-                    }
-                }
-            } else if ((shape1 instanceof Circle && shape2 instanceof Rectangle) ||
-                    (shape1 instanceof Rectangle && shape2 instanceof Circle)) {
-                performCircleRectangleUnion(shape1, shape2, drawingPanel);
-            } else {
-                JOptionPane.showMessageDialog(frame, "Difference operation is supported only between a Circle and a Rectangle.");
-            }
-        } else {
-            JOptionPane.showMessageDialog(frame, "One of the selected shapes is null.");
-        }
-    }
-    private void performCircleRectangleUnion(Shape shape1, Shape shape2, JPanel drawingPanel) {
-        Area area1;
-        Area area2;
-
-        if (shape1 instanceof Circle) {
-            Circle circle = (Circle) shape1;
-            area1 = new Area(circle.getShape());
-            area2 = new Area(((Rectangle) shape2).getShape());
-        } else {
-            Circle circle = (Circle) shape2;
-            area1 = new Area(circle.getShape());
-            area2 = new Area(((Rectangle) shape1).getShape());
-        }
-
-        area1.add(area2);
-
-        if (!area1.isEmpty()) {
-            ArrayList<Shape> complexShapes = new ArrayList<>();
-            complexShapes.add(shape1);
-            complexShapes.add(shape2);
-
-            GeometricShapes.ComplexShape unionShape = new GeometricShapes().new ComplexShape(area1, complexShapes);
-            shapes.add(unionShape);
-            paint(drawingPanel);
-        } else {
-            JOptionPane.showMessageDialog(frame, "The resulting shape is empty.");
-        }
-    }
-
-    private void performIntersection(JPanel drawingPanel) {
-    	if (groupShape.size() != 2) {
-            JOptionPane.showMessageDialog(frame, "Select exactly two shapes for difference operation.");
-            return;
-        }
-
-        Shape shape1 = groupShape.get(0);
-        Shape shape2 = groupShape.get(1);
-
-        if (shape1 != null && shape2 != null) { // Ajoutez cette vérification de nullité
-            if (shape1 instanceof Circle && shape2 instanceof Circle) {
-                Circle circle1 = (Circle) shape1;
-                Circle circle2 = (Circle) shape2;
-                if (shape1 != null && shape2 != null) {
-                Area area1 = new Area(circle1.getShape());
-                Area area2 = new Area(circle2.getShape());
-                
-                area1.intersect(area2);
-                
-                if (!area1.isEmpty()) {
-                    // Create a list of shapes contained in the complex shape
-                    ArrayList<Shape> complexShapes = new ArrayList<>();
-                    complexShapes.add(circle1);
-                    complexShapes.add(circle2);
-
-                    // Create a new ComplexShape with the list of contained shapes
-               
-                    GeometricShapes.ComplexShape intersectionShape = new GeometricShapes().new ComplexShape(area1, complexShapes);
-                    shapes.add(intersectionShape);
-                    paint(drawingPanel);
-                }} else {
-                    JOptionPane.showMessageDialog(frame, "The resulting shape is empty.");
-                }
-            } else if (shape1 instanceof Rectangle && shape2 instanceof Rectangle) {
-                Rectangle rect1 = (Rectangle) shape1;
-                Rectangle rect2 = (Rectangle) shape2;
-
-                if (rect1.getShape() != null && rect2.getShape() != null) {
-                    Area area1 = new Area(shape1.getShape());
-                    Area area2 = new Area(shape2.getShape());
-                    
+                    break;
+                case INTERSECTION:
                     area1.intersect(area2);
+                    break;
+            }
 
-                    if (!area1.isEmpty()) {
-                        // Create a list of shapes contained in the complex shape
-                        ArrayList<Shape> complexShapes = new ArrayList<>();
-                        complexShapes.add(rect1);
-                        complexShapes.add(rect2);
+            if (!area1.isEmpty()) {
+                ArrayList<Shape> complexShapes = new ArrayList<>();
+                complexShapes.add(shape1);
+                complexShapes.add(shape2);
 
-                        // Create a new ComplexShape with the list of contained shapes
-                        GeometricShapes.ComplexShape intersectionShape = new GeometricShapes().new ComplexShape(area1, complexShapes);
-                        shapes.add(intersectionShape);
-                        paint(drawingPanel);
-                    } else {
-                        JOptionPane.showMessageDialog(frame, "The resulting shape is empty.");
-                    }
-                }
-            } else if ((shape1 instanceof Circle && shape2 instanceof Rectangle) ||
-                    (shape1 instanceof Rectangle && shape2 instanceof Circle)) {
-                performCircleRectangleIntersection(shape1, shape2, drawingPanel);
+                GeometricShapes.ComplexShape complexShape = new GeometricShapes().new ComplexShape(area1, complexShapes);
+                shapes.add(complexShape);
+                paint(drawingPanel);
             } else {
-                JOptionPane.showMessageDialog(frame, "Difference operation is supported only between a Circle and a Rectangle.");
+                JOptionPane.showMessageDialog(frame, "The resulting shape is empty.");
             }
         } else {
             JOptionPane.showMessageDialog(frame, "One of the selected shapes is null.");
-        }
-    }
-    private void performCircleRectangleIntersection(Shape shape1, Shape shape2, JPanel drawingPanel) {
-        Area area1;
-        Area area2;
-
-        if (shape1 instanceof Circle) {
-            Circle circle = (Circle) shape1;
-            area1 = new Area(circle.getShape());
-            area2 = new Area(((Rectangle) shape2).getShape());
-        } else {
-            Circle circle = (Circle) shape2;
-            area1 = new Area(circle.getShape());
-            area2 = new Area(((Rectangle) shape1).getShape());
-        }
-
-        area1.intersect(area2);
-
-        if (!area1.isEmpty()) {
-            ArrayList<Shape> complexShapes = new ArrayList<>();
-            complexShapes.add(shape1);
-            complexShapes.add(shape2);
-
-            GeometricShapes.ComplexShape intersectionShape = new GeometricShapes().new ComplexShape(area1, complexShapes);
-            shapes.add(intersectionShape);
-            paint(drawingPanel);
-        } else {
-            JOptionPane.showMessageDialog(frame, "The resulting shape is empty.");
         }
     }
 }
