@@ -28,8 +28,7 @@ public class GUI extends JFrame {
     private boolean addMode = false;
     private boolean resizeMode = false;
     int handleSize = 10;
-    private boolean handleClicked = false;
-    private boolean movingShape = false; // Ajout d'un indicateur pour le déplacement d'une forme
+    private boolean movingShape = false; 
     private int selectRectX1, selectRectY1, selectRectX2, selectRectY2;
     private int selectStartX, selectStartY, selectEndX, selectEndY;
     // Enum to represent different operations
@@ -57,7 +56,7 @@ public class GUI extends JFrame {
     public void paint(JPanel drawingPanel) {
         Graphics g = drawingPanel.getGraphics();
         if (g == null) {
-            return; // Si le contexte graphique est null, ne rien faire
+            return; 
         }
         
         g.setColor(Color.WHITE);
@@ -67,17 +66,20 @@ public class GUI extends JFrame {
             if (shape instanceof ComplexShape) {
                 ComplexShape complexShape = (ComplexShape) shape;
                 complexShape.draw((Graphics2D) g); // Dessiner la forme complexe
+                
                 // Dessiner les bordures de sélection des sous-formes
-                g.setColor(Color.RED);
                 for (Shape subShape : complexShape.getShapes()) {
-                    if (subShape instanceof Circle) {
+                	if (subShape instanceof ComplexShape) {
+                		ComplexShape complexSubShape = (ComplexShape) subShape;
+                        complexSubShape.paintWithOperationBorder(drawingPanel);
+                    } else if (subShape instanceof Circle) {
                         Circle circle = (Circle) subShape;
                         circle.paintWithOperationBorder(drawingPanel);
                     } else if (subShape instanceof Rectangle) {
                         Rectangle rectangle = (Rectangle) subShape;
                         rectangle.paintWithOperationBorder(drawingPanel);
                     }
-                    // Ajoutez d'autres conditions pour les autres types de formes si nécessaire
+                    
                 }
             } else if (shape instanceof Circle) {
                 Circle circle = (Circle) shape;

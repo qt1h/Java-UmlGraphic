@@ -369,6 +369,11 @@ public class GeometricShapes extends JFrame {
         public int getHeight() {
             return getBounds().height;
         }
+
+		public void paintWithOperationBorder(JPanel drawingPanel) {
+			// à rajouter
+			
+		}
     }
 
 }
