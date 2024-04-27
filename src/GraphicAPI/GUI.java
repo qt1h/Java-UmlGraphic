@@ -32,7 +32,7 @@ public class GUI extends JFrame {
     private int selectRectX1, selectRectY1, selectRectX2, selectRectY2;
     private int selectStartX, selectStartY, selectEndX, selectEndY;
     // Enum to represent different operations
-    private enum OperationType {
+    public enum OperationType {
         DIFFERENCE,
         UNION,
         INTERSECTION
@@ -68,6 +68,7 @@ public class GUI extends JFrame {
                 complexShape.draw((Graphics2D) g); // Dessiner la forme complexe
                 
                 // Dessiner les bordures de sélection des sous-formes
+                /*
                 for (Shape subShape : complexShape.getShapes()) {
                 	if (subShape instanceof ComplexShape) {
                 		ComplexShape complexSubShape = (ComplexShape) subShape;
@@ -81,6 +82,7 @@ public class GUI extends JFrame {
                     }
                     
                 }
+                */
             } else if (shape instanceof Circle) {
                 Circle circle = (Circle) shape;
                 circle.paint(drawingPanel);
@@ -99,7 +101,7 @@ public class GUI extends JFrame {
             g.fillRect(x, y, width, height);
             
         }
-        if (resizeMode) paintSelectionHandles(g);
+        
         g.setColor(Color.BLUE);
         for (Shape shape : groupShape) {
             if (shape instanceof ComplexShape) {
@@ -116,20 +118,7 @@ public class GUI extends JFrame {
             }
         }
     }
-    private void paintSelectionHandles(Graphics g) {
-        if (groupShape.size() > 0) {
-            g.setColor(Color.BLACK);
-            int selectRectX1 = groupShape.get(0).getX();
-            int selectRectY1 = groupShape.get(0).getY();
-            int selectRectX2 = groupShape.get(0).getX() + groupShape.get(0).getWidth();
-            int selectRectY2 = groupShape.get(0).getY() + groupShape.get(0).getHeight();
-
-            g.fillRect(selectRectX1 - handleSize / 2, selectRectY1 - handleSize / 2, handleSize, handleSize); // Top-left corner
-            g.fillRect(selectRectX2 - handleSize / 2, selectRectY1 - handleSize / 2, handleSize, handleSize); // Top-right corner
-            g.fillRect(selectRectX1 - handleSize / 2, selectRectY2  - handleSize / 2, handleSize, handleSize); // Bottom-left corner
-            g.fillRect(selectRectX2 - handleSize / 2, selectRectY2  - handleSize / 2, handleSize, handleSize); // Bottom-right corner
-        }
-    }
+    
 
     private void paintComplexShapeOnly(JPanel drawingPanel) {
         Graphics g = drawingPanel.getGraphics();
@@ -194,13 +183,21 @@ public class GUI extends JFrame {
         selectedShape = "Rectangle";
         initialize();
     }
-
+    
     public void initialize() {
 
         frame = new JFrame();
-        frame.setBounds(100, 100, 450, 300);
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int screenWidth = (int) screenSize.getWidth();
+        int screenHeight = (int) screenSize.getHeight();
+        
+        int width = (int) (screenWidth * 0.5); 
+        int height = (int) (screenHeight * 0.5); 
+        int x = (screenWidth - width) / 2;
+        int y = (screenHeight - height) / 2;
+        
+        frame.setBounds(x, y, width, height);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
         frame.getContentPane().setLayout(new BorderLayout());
 
         JToolBar toolBar = new JToolBar();
@@ -208,12 +205,9 @@ public class GUI extends JFrame {
         toolBar.setFloatable(false);
         frame.getContentPane().add(toolBar, BorderLayout.NORTH);
 
-        toolBar.add(Box.createHorizontalGlue());
-        toolBar.add(Box.createHorizontalGlue());
-
-        JToggleButton newButtonSelect = new JToggleButton("Select");
-        JToggleButton newButtonAdd = new JToggleButton("Add");
-        JToggleButton newButtonDel = new JToggleButton("Delete");
+        JToggleButton newButtonSelect = new JToggleButton("<html><b>SELECT</b></html>");
+        JToggleButton newButtonAdd = new JToggleButton("<html><b>ADD</b></html>");
+        JToggleButton newButtonDel = new JToggleButton("<html><b>DELETE</b></html>");
         toolBar.add(newButtonSelect);
         toolBar.add(newButtonAdd);
         toolBar.add(newButtonDel);
@@ -229,17 +223,22 @@ public class GUI extends JFrame {
 
         toolBar.addSeparator();
 
-        JComboBox<String> shapeComboBox = new JComboBox<>(new String[]{"Rectangle", "Circle", "Triangle"});
+        JComboBox<String> shapeComboBox = new JComboBox<>(new String[]{"Rectangle", "Circle"});
         toolBar.add(shapeComboBox);
 
+        toolBar.addSeparator();
+        JComboBox<String> prefabComboBox = new JComboBox<>(new String[]{"prefab1","prefab2"});
+        toolBar.add(prefabComboBox);
+        toolBar.setBackground(new Color(90, 90, 90));
+        toolBar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        
         shapeComboBox.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 resetCoordinates();
-                firstClickDone = false;
                 selectedShape = (String) shapeComboBox.getSelectedItem();
-                System.out.println("Selected Shape: " + selectedShape);
-                deleteMode = false;
+                firstClickDone=false;
+                if (!newButtonAdd.isSelected()) newButtonAdd.doClick();
             }
         });
 
@@ -248,6 +247,7 @@ public class GUI extends JFrame {
 
         JPanel drawingPanel = new JPanel();
         drawingPanel.setBackground(Color.WHITE);
+        drawingPanel.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
         frame.getContentPane().add(drawingPanel, BorderLayout.CENTER);
         frame.setVisible(true);
 
@@ -382,7 +382,7 @@ public class GUI extends JFrame {
                         } else {
                             // Si le clic est à l'extérieur de toutes les formes du groupe
                             groupShape.clear(); // Efface la sélection de groupe
-                            selectMode = true; // Active le mode de sélection
+                            if (newButtonSelect.isSelected()) selectMode = true; // Active le mode de sélection
                             selectStartX = e.getX(); // Enregistre les coordonnées du premier clic de sélection
                             selectStartY = e.getY();
                             selectEndX = e.getX();
@@ -535,7 +535,7 @@ public class GUI extends JFrame {
                         x1 = e.getX();
                         y1 = e.getY();
                         // Redessiner uniquement la forme complexe sans réafficher les sous-formes
-                        paintComplexShapeOnly(drawingPanel);
+                        paint(drawingPanel);
 
                     }
                 }
@@ -587,6 +587,7 @@ public class GUI extends JFrame {
                 newButtonDel.setSelected(false);
                 newButtonSelect.setSelected(false);
                 deleteMode = false;
+                firstClickDone=false;
                 selectMode = false;
                 movingShape = false;
                 groupShape.clear();
@@ -723,7 +724,7 @@ public class GUI extends JFrame {
                 complexShapes.add(shape1);
                 complexShapes.add(shape2);
 
-                GeometricShapes.ComplexShape complexShape = new GeometricShapes().new ComplexShape(area1, complexShapes);
+                GeometricShapes.ComplexShape complexShape = new GeometricShapes().new ComplexShape(area1, complexShapes,operation);
                 shapes.add(complexShape);
                 paint(drawingPanel);
             } else {

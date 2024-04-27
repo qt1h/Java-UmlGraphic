@@ -2,6 +2,8 @@ package GraphicAPI;
 
 import javax.swing.*;
 
+import GraphicAPI.GUI.OperationType;
+
 import java.awt.geom.Area;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
@@ -9,6 +11,7 @@ import java.awt.geom.Rectangle2D;
 import java.awt.*;
 import java.io.Serializable;
 import java.util.ArrayList;
+
 
 public class GeometricShapes extends JFrame {
     interface Shape {
@@ -236,12 +239,16 @@ public class GeometricShapes extends JFrame {
     class ComplexShape implements Shape {
         private Area shape;
         private ArrayList<Shape> shapes;
+        private OperationType operation;
 
-        public ComplexShape(Area shape, ArrayList<Shape> shapes) {
+        public ComplexShape(Area shape, ArrayList<Shape> shapes, OperationType operation) {
             this.shape = shape;
             this.shapes = shapes;
+            this.operation = operation;
         }
-
+        public enum AreaOperation {
+            UNION, INTERSECTION, DIFFERENCE
+        }
         @Override
         public boolean contains(Point point) {
             return shape.contains(point);
@@ -261,25 +268,39 @@ public class GeometricShapes extends JFrame {
 
         @Override
         public void setBounds(int dx, int dy) {
-
             // Parcourir toutes les sous-formes de la forme complexe
-            for (Shape shape : shapes) {
-                // Déplacer chaque sous-forme en ajoutant les valeurs de dx et dy à ses coordonnées
-                shape.setBounds(dx, dy);
-            }
-
-            // Recréer la zone de la forme complexe en fonction des nouvelles positions des sous-formes
-            shape.reset();
             for (Shape s : shapes) {
-                if (s instanceof ComplexShape) {
-                    // Si la forme est de type complexe, ajouter sa zone à la forme complexe principale
-                    shape.add(new Area(s.getShape()));
-
-                }
+                // Déplacer chaque sous-forme en ajoutant les valeurs de dx et dy à ses coordonnées
+                s.setBounds(dx, dy);
             }
 
+            // Recréer la forme complexe en fonction des nouvelles positions des sous-formes
+            shape = new Area();
+            for (Shape s : shapes) {
+                // Ajouter la forme de chaque sous-forme à la forme complexe
+                shape.add(new Area(s.getShape()));
+            }
+            applyOperation();
         }
-
+        private void applyOperation() {
+            switch (operation) {
+                case UNION:
+                    // Ne rien faire, car l'opération d'union est déjà appliquée par défaut
+                    break;
+                case INTERSECTION:
+                    // Effectuer une intersection avec chaque sous-forme
+                    for (int i = 1; i < shapes.size(); i++) {
+                        shape.intersect(new Area(shapes.get(i).getShape()));
+                    }
+                    break;
+                case DIFFERENCE:
+                    // Effectuer une différence avec chaque sous-forme après la première
+                    for (int i = 1; i < shapes.size(); i++) {
+                        shape.subtract(new Area(shapes.get(i).getShape()));
+                    }
+                    break;
+            }
+        }
         @Override
         public java.awt.Shape getShape() {
             return shape;
@@ -370,10 +391,25 @@ public class GeometricShapes extends JFrame {
             return getBounds().height;
         }
 
-		public void paintWithOperationBorder(JPanel drawingPanel) {
-			// à rajouter
-			
-		}
+        public void paintWithOperationBorder(JPanel drawingPanel) {
+            // Obtenir le contexte graphique du JPanel
+            Graphics2D g2d = (Graphics2D) drawingPanel.getGraphics();
+            
+            // Sauvegarder l'ancien style de trait
+            Stroke oldStroke = g2d.getStroke();
+            
+            // Création du style de trait en pointillés
+            g2d.setStroke(new BasicStroke(2, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{4}, 0));
+            
+            // Définir la couleur de la bordure
+            g2d.setColor(Color.RED);
+            
+            // Dessiner la bordure de la forme complexe
+            g2d.draw(shape);
+            
+            // Restaurer l'ancien style de trait
+            g2d.setStroke(oldStroke);
+        }
     }
 
 }
