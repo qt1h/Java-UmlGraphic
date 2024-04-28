@@ -9,11 +9,13 @@ import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.geom.Area;
-import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 
 public class GUI extends JFrame {
@@ -29,7 +31,6 @@ public class GUI extends JFrame {
     private boolean resizeMode = false;
     int handleSize = 10;
     private boolean movingShape = false; 
-    private int selectRectX1, selectRectY1, selectRectX2, selectRectY2;
     private int selectStartX, selectStartY, selectEndX, selectEndY;
     // Enum to represent different operations
     public enum OperationType {
@@ -53,6 +54,28 @@ public class GUI extends JFrame {
         x1 = y1 = x2 = y2 = dx = dy = 0;
     }
 
+    public boolean isNearBorder(GeometricShapes.Shape shape, Point clickPoint) {
+        int threshold = 20; // distance from border
+      
+        return clickPoint.x <= shape.getX() + threshold || 
+               clickPoint.x >= shape.getX() + shape.getWidth() - threshold ||
+               clickPoint.y <= shape.getY() + threshold || 
+               clickPoint.y >= shape.getY() + shape.getHeight() - threshold;
+    }
+    
+    public boolean isPointInsideGroupShape(ArrayList<GeometricShapes.Shape> groupShape, Point point) {
+		// Vérifier si la liste de formes est vide
+		if (groupShape.isEmpty()) {
+			return false;
+		}
+
+		// Récupérer la première forme du groupe (vous pouvez ajuster cette logique selon vos besoins)
+		GeometricShapes.Shape selectedShape = groupShape.get(0);
+
+		// Vérifier si le point est à l'intérieur de la forme
+		return point.x >= selectedShape.getX() && point.x <= selectedShape.getX() + selectedShape.getWidth() &&
+				point.y >= selectedShape.getY() && point.y <= selectedShape.getY() + selectedShape.getHeight();
+	}
     public void paint(JPanel drawingPanel) {
         Graphics g = drawingPanel.getGraphics();
         if (g == null) {
@@ -66,23 +89,6 @@ public class GUI extends JFrame {
             if (shape instanceof ComplexShape) {
                 ComplexShape complexShape = (ComplexShape) shape;
                 complexShape.draw((Graphics2D) g); // Dessiner la forme complexe
-                
-                // Dessiner les bordures de sélection des sous-formes
-                /*
-                for (Shape subShape : complexShape.getShapes()) {
-                	if (subShape instanceof ComplexShape) {
-                		ComplexShape complexSubShape = (ComplexShape) subShape;
-                        complexSubShape.paintWithOperationBorder(drawingPanel);
-                    } else if (subShape instanceof Circle) {
-                        Circle circle = (Circle) subShape;
-                        circle.paintWithOperationBorder(drawingPanel);
-                    } else if (subShape instanceof Rectangle) {
-                        Rectangle rectangle = (Rectangle) subShape;
-                        rectangle.paintWithOperationBorder(drawingPanel);
-                    }
-                    
-                }
-                */
             } else if (shape instanceof Circle) {
                 Circle circle = (Circle) shape;
                 circle.paint(drawingPanel);
@@ -118,64 +124,6 @@ public class GUI extends JFrame {
             }
         }
     }
-    
-
-    private void paintComplexShapeOnly(JPanel drawingPanel) {
-        Graphics g = drawingPanel.getGraphics();
-        if (g == null) {
-            return;
-        }
-
-        g.setColor(Color.WHITE);
-        g.fillRect(0, 0, drawingPanel.getWidth(), drawingPanel.getHeight());
-
-        Shape lastShape = null; // Stocker la dernière forme complexe
-
-        for (Shape shape : shapes) {
-            if (shape instanceof ComplexShape) {
-                lastShape = shape; // Mettre à jour la dernière forme complexe
-            } else {
-                 paint(drawingPanel); // Dessiner les autres formes
-            }
-        }
-
-        // Dessiner la dernière forme complexe uniquement si elle existe
-        if (lastShape != null) {
-            ComplexShape lastComplexShape = (ComplexShape) lastShape;
-            lastComplexShape.draw((Graphics2D) g);
-        }
-
-        if (selectMode) {
-            g.setColor(new Color(0, 0, 255, 100));
-            int width = Math.abs(selectEndX - selectStartX);
-            int height = Math.abs(selectEndY - selectStartY);
-            int x = Math.min(selectStartX, selectEndX);
-            int y = Math.min(selectStartY, selectEndY);
-            g.fillRect(x, y, width, height);
-            selectRectX1 = x;
-            selectRectY1 = y;
-            selectRectX2 = x + width;
-            selectRectY2 = y + height;
-        }
-        if (groupShape.size() > 0) {
-            g.setColor(Color.BLACK);
-            g.fillRect(selectRectX1 - handleSize / 2, selectRectY1 - handleSize / 2, handleSize, handleSize); // Coin supérieur gauche
-            g.fillRect(selectRectX2 - handleSize / 2, selectRectY1 - handleSize / 2, handleSize, handleSize); // Coin supérieur droit
-            g.fillRect(selectRectX1 - handleSize / 2, selectRectY2  - handleSize / 2, handleSize, handleSize); // Coin inférieur gauche
-            g.fillRect(selectRectX2 - handleSize / 2, selectRectY2  - handleSize / 2, handleSize, handleSize); // Coin inférieur droit
-    
-        }
-        g.setColor(Color.BLUE);
-        for (Shape shape : groupShape) {
-            if (shape instanceof ComplexShape) {
-                ComplexShape complexShape = (ComplexShape) shape;
-                complexShape.drawBorder((Graphics2D) g, drawingPanel); // Dessiner la bordure de la forme complexe
-            }
-            
-            
-        }
-    }
-
 
     public GUI() {
         shapes = new ArrayList<>();
@@ -230,7 +178,7 @@ public class GUI extends JFrame {
         JComboBox<String> prefabComboBox = new JComboBox<>(new String[]{"prefab1","prefab2"});
         toolBar.add(prefabComboBox);
         toolBar.setBackground(new Color(90, 90, 90));
-        toolBar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+       
         
         shapeComboBox.addActionListener(new ActionListener() {
             @Override
@@ -241,6 +189,20 @@ public class GUI extends JFrame {
                 if (!newButtonAdd.isSelected()) newButtonAdd.doClick();
             }
         });
+        
+        for (Component component : toolBar.getComponents()) { // comment vérifier qu'on passe sur les JComboBox?
+            component.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    toolBar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                }
+
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    toolBar.setCursor(Cursor.getDefaultCursor());
+                }
+            });
+        }
 
         Border bottomBorder = BorderFactory.createMatteBorder(0, 0, 1, 0, Color.BLACK);
         toolBar.setBorder(BorderFactory.createCompoundBorder(toolBar.getBorder(), bottomBorder));
@@ -371,14 +333,21 @@ public class GUI extends JFrame {
                             // Si le clic est à l'intérieur d'une forme du groupe
                             x1 = e.getX(); // Enregistre les coordonnées du premier clic pour le déplacement
                             y1 = e.getY();
-                            if (isNearBorder(groupShape.get(0), e.getPoint())) {
-                                // Si le clic est assez proche de la bordure de la forme
-                                resizeMode = true; // Activer le mode de redimensionnement
-                                movingShape = false; // Désactiver le mode de déplacement
-                            } else {
-                                movingShape = true; // Activer le mode de déplacement de forme
-                                resizeMode = false; // Désactiver le mode de redimensionnement
-                            }
+                            if (groupShape.size() == 0|| !isPointInsideGroupShape(groupShape, e.getPoint())) {
+                    	        // Aucune forme dans le groupe
+                    	        drawingPanel.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+                    	    } else if (isNearBorder(groupShape.get(0), e.getPoint())) {
+                    	        // La souris est proche du bord de la forme
+                    	        drawingPanel.setCursor(Cursor.getPredefinedCursor(Cursor.NW_RESIZE_CURSOR));
+                    	        resizeMode = true; // Activer le mode de redimensionnement
+                                movingShape = false;
+                    	    } else {
+                    	        // La souris est à l'intérieur de la forme mais pas proche du bord
+                    	        drawingPanel.setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
+                    	        movingShape = true; // Activer le mode de déplacement de forme
+                                resizeMode = false;
+                    	    }
+                 
                         } else {
                             // Si le clic est à l'extérieur de toutes les formes du groupe
                             groupShape.clear(); // Efface la sélection de groupe
@@ -407,15 +376,7 @@ public class GUI extends JFrame {
             }
 
 
-            // Méthode pour vérifier si le clic est près des bords d'une forme
-            public boolean isNearBorder(GeometricShapes.Shape shape, Point clickPoint) {
-                int threshold = 10; // Seuil de distance par rapport au bord
-              
-                return clickPoint.x <= shape.getX() + threshold || 
-                       clickPoint.x >= shape.getX() + shape.getWidth() - threshold ||
-                       clickPoint.y <= shape.getY() + threshold || 
-                       clickPoint.y >= shape.getY() + shape.getHeight() - threshold;
-            }
+            
 
 
             @Override
@@ -485,6 +446,16 @@ public class GUI extends JFrame {
                     selectEndX = e.getX();
                     selectEndY = e.getY();
                     selectShapesInArea();
+                    if (groupShape.size() == 0|| !isPointInsideGroupShape(groupShape, e.getPoint())) {
+            	        // Aucune forme dans le groupe
+            	        drawingPanel.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+            	    } else if (isNearBorder(groupShape.get(0), e.getPoint())) {
+            	        // La souris est proche du bord de la forme
+            	        drawingPanel.setCursor(Cursor.getPredefinedCursor(Cursor.NW_RESIZE_CURSOR));
+            	    } else {
+            	        // La souris est à l'intérieur de la forme mais pas proche du bord
+            	        drawingPanel.setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
+            	    }
                     paint(drawingPanel);
                 } else {
                     if (!deleteMode && firstClickDone && addMode) {
@@ -543,7 +514,18 @@ public class GUI extends JFrame {
 
             @Override
             public void mouseMoved(MouseEvent e) {
+            	 if (groupShape.size() == 0|| !isPointInsideGroupShape(groupShape, e.getPoint())) {
+            	        // Aucune forme dans le groupe
+            	        drawingPanel.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+            	    } else if (isNearBorder(groupShape.get(0), e.getPoint())) {
+            	        // La souris est proche du bord de la forme
+            	        drawingPanel.setCursor(Cursor.getPredefinedCursor(Cursor.NW_RESIZE_CURSOR));
+            	    } else {
+            	        // La souris est à l'intérieur de la forme mais pas proche du bord
+            	        drawingPanel.setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
+            	    }
             }
+
         });
 
         newButtonDel.addActionListener(new ActionListener() {
