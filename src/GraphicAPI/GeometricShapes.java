@@ -133,6 +133,14 @@ public class GeometricShapes extends JFrame {
         public int getHeight() {
             return r; // La hauteur du cercle est égale à son diamètre
         }
+        
+        public void clear() {
+            // Effacer les données du cercle (par exemple, réinitialiser les coordonnées et le rayon)
+            this.x = 0;
+            this.y = 0;
+            this.r = 0;
+            this.color = null;
+        }
     }
 
     public class Rectangle implements Shape, Serializable {
@@ -234,6 +242,14 @@ public class GeometricShapes extends JFrame {
         public int getHeight() {
             return height;
         }
+        public void clear() {
+            // Effacer les données du rectangle (par exemple, réinitialiser les coordonnées, la largeur et la hauteur)
+            this.x1 = 0;
+            this.y1 = 0;
+            this.width = 0;
+            this.height = 0;
+            this.color = null;
+        }
     }
 
     class ComplexShape implements Shape {
@@ -261,6 +277,7 @@ public class GeometricShapes extends JFrame {
 
         public void clearShapes() {
             // Effacer toutes les sous-formes de la forme complexe
+        	
             shapes.clear();
             // Réinitialiser la zone de la forme complexe
             shape.reset();

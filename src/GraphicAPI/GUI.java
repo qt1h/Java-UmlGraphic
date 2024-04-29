@@ -21,6 +21,7 @@ import java.util.ArrayList;
 public class GUI extends JFrame {
 	ArrayList<Shape> shapes;
     ArrayList<Shape> groupShape;
+    ArrayList<Shape> UNDOshapes;
     private JFrame frame;
     private String selectedShape;
     private int x1, y1, x2, y2, dx, dy;
@@ -33,6 +34,7 @@ public class GUI extends JFrame {
     private boolean movingShape = false; 
     private int selectStartX, selectStartY, selectEndX, selectEndY;
     // Enum to represent different operations
+    private boolean undo=false;
     public enum OperationType {
         DIFFERENCE,
         UNION,
@@ -85,9 +87,18 @@ public class GUI extends JFrame {
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, drawingPanel.getWidth(), drawingPanel.getHeight());
 
+        /*ComplexShape lastComplexShape = null;
+        for (int i = shapes.size() - 1; i >= 0; i--) {
+            if (shapes.get(i) instanceof ComplexShape) {
+                lastComplexShape = (ComplexShape) shapes.get(i);
+                break;
+            }
+        }
+        if (lastComplexShape != null)lastComplexShape.draw((Graphics2D) g);*/
         for (Shape shape : shapes) {
             if (shape instanceof ComplexShape) {
                 ComplexShape complexShape = (ComplexShape) shape;
+                /*if (undo==false ) complexShape.clearShapes();*/
                 complexShape.draw((Graphics2D) g); // Dessiner la forme complexe
             } else if (shape instanceof Circle) {
                 Circle circle = (Circle) shape;
@@ -97,7 +108,8 @@ public class GUI extends JFrame {
                 rectangle.paint(drawingPanel);
             }
         }
-
+        
+        // selection  
         if (selectMode) {
             g.setColor(new Color(0, 0, 255, 100));
             int width = Math.abs(selectEndX - selectStartX);
@@ -128,6 +140,7 @@ public class GUI extends JFrame {
     public GUI() {
         shapes = new ArrayList<>();
         groupShape = new ArrayList<>();
+        UNDOshapes= new ArrayList<>();
         selectedShape = "Rectangle";
         initialize();
     }
@@ -170,7 +183,10 @@ public class GUI extends JFrame {
         toolBar.add(intersectionButton);
 
         toolBar.addSeparator();
-
+        JToggleButton buttonUndo = new JToggleButton("<html><b>Undo</b></html>");
+        toolBar.add(buttonUndo);
+        
+        toolBar.addSeparator();
         JComboBox<String> shapeComboBox = new JComboBox<>(new String[]{"Rectangle", "Circle"});
         toolBar.add(shapeComboBox);
 
@@ -277,7 +293,7 @@ public class GUI extends JFrame {
                         }
                     }
                     return false;
-                }
+            }
           
             @Override
             public void mousePressed(MouseEvent e) {
@@ -599,6 +615,16 @@ public class GUI extends JFrame {
             	performOperation(OperationType.INTERSECTION,drawingPanel);
             }
         });
+        buttonUndo.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                undo=buttonUndo.isSelected();
+               
+                performOperation(null,drawingPanel);
+                paint(drawingPanel);
+
+            }
+        });
 
     }
     
@@ -677,10 +703,22 @@ public class GUI extends JFrame {
     }
     
     private void performOperation(OperationType operation, JPanel drawingPanel) {
-        if (groupShape.size() != 2) {
-            JOptionPane.showMessageDialog(frame, "Select exactly two shapes for the operation.");
+    	System.out.println(groupShape.size()); 
+    	if (groupShape.size() == 1 && undo) {
+            // Si une seule forme est sélectionnée et que l'opération undo est activée
+            Shape removedShape = groupShape.get(0);
+            // Retirer la forme de la liste des formes actuelles
+            shapes.remove(removedShape);
+            // Restaurer les formes précédentes depuis la liste UNDOshapes
+            shapes.addAll(UNDOshapes);
+            groupShape.addAll(UNDOshapes);
+            groupShape.remove(removedShape);
+            // Nettoyer la liste des formes UNDO
+            UNDOshapes.clear();
+        } else if (groupShape.size() != 2 || operation==null) {
+            JOptionPane.showMessageDialog(frame, "Select exactly two shapes for the operation or one to undo");
             return;
-        }
+        } else {
 
         Shape shape1 = groupShape.get(0);
         Shape shape2 = groupShape.get(1);
@@ -705,9 +743,18 @@ public class GUI extends JFrame {
                 ArrayList<Shape> complexShapes = new ArrayList<>();
                 complexShapes.add(shape1);
                 complexShapes.add(shape2);
-
+                  
                 GeometricShapes.ComplexShape complexShape = new GeometricShapes().new ComplexShape(area1, complexShapes,operation);
-                shapes.add(complexShape);
+               
+                	groupShape.add(complexShape) ;
+                	shapes.add(complexShape);
+                	groupShape.remove(shape1) ;
+                	groupShape.remove(shape2) ;
+                	UNDOshapes.add(shape1);
+                	UNDOshapes.add(shape2);
+                	shapes.remove(shape1);
+                	shapes.remove(shape2);
+                
                 paint(drawingPanel);
             } else {
                 JOptionPane.showMessageDialog(frame, "The resulting shape is empty.");
@@ -716,4 +763,5 @@ public class GUI extends JFrame {
             JOptionPane.showMessageDialog(frame, "One of the selected shapes is null.");
         }
     }
+   }
 }
