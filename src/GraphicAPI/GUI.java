@@ -16,6 +16,12 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.geom.Area;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 
 public class GUI extends JFrame {
@@ -40,6 +46,28 @@ public class GUI extends JFrame {
         UNION,
         INTERSECTION
     }
+    public void serializeShape() {
+    JFileChooser fileChooser = new JFileChooser();
+    if (fileChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+        File file = fileChooser.getSelectedFile();
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(file))) {
+            out.writeObject(shapes);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+   public void deserializeShape() {
+    JFileChooser fileChooser = new JFileChooser();
+    if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+        File file = fileChooser.getSelectedFile();
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(file))) {
+        	shapes = (ArrayList <Shape>) in.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+}
     public static void main(String[] args) {
         EventQueue.invokeLater(new Runnable() {
             public void run() {
@@ -139,6 +167,7 @@ public class GUI extends JFrame {
 
     public GUI() {
         shapes = new ArrayList<>();
+        deserializeShape();
         groupShape = new ArrayList<>();
         UNDOshapes= new ArrayList<>();
         selectedShape = "Rectangle";
@@ -169,9 +198,11 @@ public class GUI extends JFrame {
         JToggleButton newButtonSelect = new JToggleButton("<html><b>SELECT</b></html>");
         JToggleButton newButtonAdd = new JToggleButton("<html><b>ADD</b></html>");
         JToggleButton newButtonDel = new JToggleButton("<html><b>DELETE</b></html>");
+        JToggleButton newButtonSave = new JToggleButton("<html><b>Save</b></html>");
         toolBar.add(newButtonSelect);
         toolBar.add(newButtonAdd);
         toolBar.add(newButtonDel);
+        toolBar.add(newButtonSave);
 
         toolBar.addSeparator();
 
@@ -228,7 +259,7 @@ public class GUI extends JFrame {
         drawingPanel.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
         frame.getContentPane().add(drawingPanel, BorderLayout.CENTER);
         frame.setVisible(true);
-
+        repaint();
         drawingPanel.addMouseListener(new MouseListener() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -606,6 +637,12 @@ public class GUI extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
             	performOperation(OperationType.UNION,drawingPanel);
+            }
+        });
+        newButtonSave.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                serializeShape();
             }
         });
 
