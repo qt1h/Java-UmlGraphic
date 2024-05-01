@@ -3,6 +3,7 @@ package GraphicAPI;
 import javax.swing.*;
 
 import GraphicAPI.GUI.OperationType;
+import GraphicAPI.GeometricShapes.Shape;
 
 import java.awt.geom.Area;
 import java.awt.geom.Ellipse2D;
@@ -259,6 +260,7 @@ public class GeometricShapes extends JFrame {
     	private transient Area shape;
         private ArrayList<Shape> shapes;
         private OperationType operation;
+        private ArrayList<Shape> UNDOshapes;
 
         public ComplexShape(Area shape, ArrayList<Shape> shapes, OperationType operation) {
         	this.shape = shape != null ? shape : new Area();
@@ -452,6 +454,14 @@ public class GeometricShapes extends JFrame {
             // Restaurer l'ancien style de trait
             g2d.setStroke(oldStroke);
         }
+
+		public ArrayList<Shape> getUNDOshapes() {
+			return UNDOshapes;
+		}
+
+		public void setUNDOshapes(ArrayList<Shape> uNDOshapes) {
+			UNDOshapes = uNDOshapes;
+		}
 
     }
 

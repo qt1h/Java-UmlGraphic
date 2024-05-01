@@ -27,7 +27,7 @@ import java.util.ArrayList;
 public class GUI extends JFrame {
 	ArrayList<Shape> shapes;
     ArrayList<Shape> groupShape;
-    ArrayList<Shape> UNDOshapes;
+   
     private JFrame frame;
     private String selectedShape;
     private int x1, y1, x2, y2, dx, dy;
@@ -169,7 +169,7 @@ public class GUI extends JFrame {
         shapes = new ArrayList<>();
         deserializeShape();
         groupShape = new ArrayList<>();
-        UNDOshapes= new ArrayList<>();
+       
         selectedShape = "Rectangle";
         initialize();
     }
@@ -745,16 +745,16 @@ public class GUI extends JFrame {
     private void performOperation(OperationType operation, JPanel drawingPanel) {
     	System.out.println(groupShape.size()); 
     	if (groupShape.size() == 1 && undo) {
-            // Si une seule forme est sélectionnée et que l'opération undo est activée
+    		          // Si une seule forme est sélectionnée et que l'opération undo est activée
             Shape removedShape = groupShape.get(0);
             // Retirer la forme de la liste des formes actuelles
             shapes.remove(removedShape);
             // Restaurer les formes précédentes depuis la liste UNDOshapes
-            shapes.addAll(UNDOshapes);
-            groupShape.addAll(UNDOshapes);
+            shapes.addAll(((ComplexShape) removedShape).getUNDOshapes());
+            groupShape.addAll(((ComplexShape) removedShape).getUNDOshapes());
             groupShape.remove(removedShape);
             // Nettoyer la liste des formes UNDO
-            UNDOshapes.clear();
+            ((ComplexShape) removedShape).setUNDOshapes(new ArrayList<>());
         } else if (groupShape.size() != 2 || operation==null) {
             JOptionPane.showMessageDialog(frame, "Select exactly two shapes for the operation or one to undo");
             return;
@@ -788,12 +788,10 @@ public class GUI extends JFrame {
                
                 	groupShape.add(complexShape) ;
                 	shapes.add(complexShape);
-                	groupShape.remove(shape1) ;
-                	groupShape.remove(shape2) ;
-                	UNDOshapes.add(shape1);
-                	UNDOshapes.add(shape2);
-                	shapes.remove(shape1);
-                	shapes.remove(shape2);
+                	groupShape.removeAll(complexShapes) ;
+                	
+                	complexShape.setUNDOshapes(complexShapes); 
+                	shapes.removeAll(complexShapes);
                 
                 paint(drawingPanel);
             } else {
