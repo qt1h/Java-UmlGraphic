@@ -257,7 +257,7 @@ public class GeometricShapes extends JFrame {
     }
 
     class ComplexShape implements Shape,Serializable {
-    	private transient Area shape;
+    	private transient Area shape; //on doit les recréer car area n'est pas sérialisable
         private ArrayList<Shape> shapes;
         private OperationType operation;
         private ArrayList<Shape> UNDOshapes;
@@ -317,7 +317,7 @@ public class GeometricShapes extends JFrame {
         }
 
         
-        private void applyOperation() {
+        public void applyOperation() {
             Area result = new Area(shapes.get(0).getShape()); // Initialiser avec la première forme
 
             switch (operation) {

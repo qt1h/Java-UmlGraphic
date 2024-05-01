@@ -57,17 +57,44 @@ public class GUI extends JFrame {
         }
     }
 }
-   public void deserializeShape() {
-    JFileChooser fileChooser = new JFileChooser();
-    if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-        File file = fileChooser.getSelectedFile();
-        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(file))) {
-        	shapes = (ArrayList <Shape>) in.readObject();
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
+    public void deserializeShape() {
+        JFileChooser fileChooser = new JFileChooser();
+        if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+            File file = fileChooser.getSelectedFile();
+            try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(file))) {
+                Object obj = in.readObject();
+                if (obj instanceof ArrayList) {
+                    ArrayList<Shape> serializedShapes = (ArrayList<Shape>) obj;
+                    // Si les formes sont sérialisées, vous devez vérifier si elles sont complexes ou non
+                    for (Shape serializedShape : serializedShapes) {
+                        if (serializedShape instanceof ComplexShape) {
+                            // Si c'est une forme complexe, vous devez la reconstruire en utilisant les sous-formes et les opérations
+                            ComplexShape complexShape = (ComplexShape) serializedShape;
+                            reconstructComplexShape(complexShape);
+                        } else {
+                            // Si ce n'est pas une forme complexe, vous pouvez simplement l'ajouter à votre liste de formes
+                            shapes.add(serializedShape);
+                        }
+                    }
+                }
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+            }
         }
     }
-}
+
+    private void reconstructComplexShape(ComplexShape complexShape) {
+        // Récupérer les sous-formes de la forme complexe
+        ArrayList<Shape> subShapes = complexShape.getShapes();
+        
+        // Réappliquer les opérations
+        // Notez que vous devez disposer d'une méthode pour appliquer les opérations dans la classe ComplexShape
+        complexShape.applyOperation();
+        
+        // Ajouter la forme complexe reconstruite à votre liste de formes
+        shapes.add(complexShape);
+    }
+
     public static void main(String[] args) {
         EventQueue.invokeLater(new Runnable() {
             public void run() {
