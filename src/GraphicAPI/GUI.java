@@ -77,6 +77,7 @@ public class GUI extends JFrame {
                         }
                     }
                 }
+                
             } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
             }
@@ -194,15 +195,18 @@ public class GUI extends JFrame {
 
     public GUI() {
         shapes = new ArrayList<>();
-        deserializeShape();
+        
         groupShape = new ArrayList<>();
        
         selectedShape = "Rectangle";
         initialize();
+        
+        
+       
     }
     
     public void initialize() {
-
+    	
         frame = new JFrame();
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         int screenWidth = (int) screenSize.getWidth();
@@ -286,7 +290,9 @@ public class GUI extends JFrame {
         drawingPanel.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
         frame.getContentPane().add(drawingPanel, BorderLayout.CENTER);
         frame.setVisible(true);
-        repaint();
+        deserializeShape();
+        paint(drawingPanel);
+        
         drawingPanel.addMouseListener(new MouseListener() {
             @Override
             public void mouseClicked(MouseEvent e) {
