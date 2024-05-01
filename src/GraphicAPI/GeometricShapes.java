@@ -14,7 +14,9 @@ import java.util.ArrayList;
 
 
 public class GeometricShapes extends JFrame {
-    interface Shape {
+    private static final long serialVersionUID = 1L;
+
+	interface Shape {
         boolean contains(Point point);
         java.awt.Rectangle getBounds();
         void setBounds(int dx, int dy);
@@ -24,6 +26,7 @@ public class GeometricShapes extends JFrame {
         int getY(); // Obtenez la coordonnée y
         int getWidth(); // Obtenez la largeur de la forme
         int getHeight(); // Obtenez la hauteur de la forme
+		void resize(int dx, int dy);
     }
 
     class Circle implements Shape, Serializable {
@@ -252,13 +255,13 @@ public class GeometricShapes extends JFrame {
         }
     }
 
-    class ComplexShape implements Shape {
-        private Area shape;
+    class ComplexShape implements Shape,Serializable {
+    	private transient Area shape;
         private ArrayList<Shape> shapes;
         private OperationType operation;
 
         public ComplexShape(Area shape, ArrayList<Shape> shapes, OperationType operation) {
-            this.shape = shape;
+        	this.shape = shape != null ? shape : new Area();
             this.shapes = shapes;
             this.operation = operation;
         }
@@ -272,7 +275,13 @@ public class GeometricShapes extends JFrame {
 
         @Override
         public java.awt.Rectangle getBounds() {
-            return shape.getBounds();
+        	if (shape != null) {
+                return shape.getBounds();
+            } else {
+                // Gérer le cas où shape est null
+                return new java.awt.Rectangle(0, 0, 0, 0); // Retourner une valeur par défaut
+            }
+            
         }
 
         public void clearShapes() {
@@ -283,7 +292,6 @@ public class GeometricShapes extends JFrame {
             shape.reset();
         }
 
-        @Override
         public void setBounds(int dx, int dy) {
             // Parcourir toutes les sous-formes de la forme complexe
             for (Shape s : shapes) {
@@ -291,33 +299,50 @@ public class GeometricShapes extends JFrame {
                 s.setBounds(dx, dy);
             }
 
-            // Recréer la forme complexe en fonction des nouvelles positions des sous-formes
             shape = new Area();
-            for (Shape s : shapes) {
-                // Ajouter la forme de chaque sous-forme à la forme complexe
-                shape.add(new Area(s.getShape()));
-            }
             applyOperation();
         }
+
+        public void resize(int dx, int dy) {
+            // Parcourir toutes les sous-formes de la forme complexe
+            for (Shape s : shapes) {
+                // Redimensionner chaque sous-forme
+                s.resize(dx, dy);
+            }
+
+            shape = new Area();
+            applyOperation();
+        }
+
+        
         private void applyOperation() {
+            Area result = new Area(shapes.get(0).getShape()); // Initialiser avec la première forme
+
             switch (operation) {
                 case UNION:
                     // Ne rien faire, car l'opération d'union est déjà appliquée par défaut
+                	for (int i = 1; i < shapes.size(); i++) {
+                        result.add(new Area(shapes.get(i).getShape()));
+                    }
                     break;
                 case INTERSECTION:
                     // Effectuer une intersection avec chaque sous-forme
                     for (int i = 1; i < shapes.size(); i++) {
-                        shape.intersect(new Area(shapes.get(i).getShape()));
+                        result.intersect(new Area(shapes.get(i).getShape()));
                     }
                     break;
                 case DIFFERENCE:
                     // Effectuer une différence avec chaque sous-forme après la première
                     for (int i = 1; i < shapes.size(); i++) {
-                        shape.subtract(new Area(shapes.get(i).getShape()));
+                        result.subtract(new Area(shapes.get(i).getShape()));
                     }
                     break;
             }
+
+            // Mettre à jour la forme complexe avec le résultat final
+            shape = result;
         }
+        
         @Override
         public java.awt.Shape getShape() {
             return shape;
@@ -427,6 +452,7 @@ public class GeometricShapes extends JFrame {
             // Restaurer l'ancien style de trait
             g2d.setStroke(oldStroke);
         }
+
     }
 
 }

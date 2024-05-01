@@ -532,7 +532,10 @@ public class GUI extends JFrame {
                             } else if (selectedShape instanceof Rectangle) {
                                 Rectangle rectangle = (Rectangle) selectedShape;
                                 rectangle.resize(dx, dy);
+                            }else if (selectedShape instanceof ComplexShape) {
+                            	 ((ComplexShape) groupShape.get(0)).resize(dx, dy);
                             }
+                            
                         }
                         x1 = e.getX();
                         y1 = e.getY();
