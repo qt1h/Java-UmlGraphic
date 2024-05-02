@@ -9,6 +9,8 @@ import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.MouseAdapter;
@@ -39,61 +41,71 @@ public class GUI extends JFrame {
     int handleSize = 10;
     private boolean movingShape = false; 
     private int selectStartX, selectStartY, selectEndX, selectEndY;
+    private File lastUsedFile;
     // Enum to represent different operations
     private boolean undo=false;
+	private boolean saveMode=false;
     public enum OperationType {
         DIFFERENCE,
         UNION,
         INTERSECTION
     }
     public void serializeShape() {
-    JFileChooser fileChooser = new JFileChooser();
-    if (fileChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
-        File file = fileChooser.getSelectedFile();
+        JFileChooser fileChooser = new JFileChooser();       
+        
+        if (lastUsedFile != null && saveMode) { //SAVE
+            File file  = lastUsedFile;
+            JOptionPane.showMessageDialog(frame, "The file has beeen saved");
+            saveShapesToFile(file);
+            return;
+            
+        } else if (fileChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) { //SAVE AS           
+        	File file = fileChooser.getSelectedFile();                  
+            if (file.exists()) {
+                int result = JOptionPane.showConfirmDialog(null, "This file already exists. Do you want to replace it?", "Confirmation", JOptionPane.YES_NO_OPTION);
+                if (result != JOptionPane.YES_OPTION) {
+                    return;
+                }
+            }
+            lastUsedFile=file;
+            saveShapesToFile(file);
+        }
+    }
+
+    private void saveShapesToFile(File file) {
         try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(file))) {
-            out.writeObject(shapes);
+            out.writeObject(shapes);   
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-}
+
     public void deserializeShape() {
         JFileChooser fileChooser = new JFileChooser();
         if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
             File file = fileChooser.getSelectedFile();
+            lastUsedFile=file;
             try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(file))) {
                 Object obj = in.readObject();
                 if (obj instanceof ArrayList) {
                     ArrayList<Shape> serializedShapes = (ArrayList<Shape>) obj;
-                    // Si les formes sont sérialisées, vous devez vérifier si elles sont complexes ou non
+                    
                     for (Shape serializedShape : serializedShapes) {
                         if (serializedShape instanceof ComplexShape) {
-                            // Si c'est une forme complexe, vous devez la reconstruire en utilisant les sous-formes et les opérations
+                            // reconstruction a partir des sous formes
                             ComplexShape complexShape = (ComplexShape) serializedShape;
-                            reconstructComplexShape(complexShape);
-                        } else {
-                            // Si ce n'est pas une forme complexe, vous pouvez simplement l'ajouter à votre liste de formes
+                            complexShape.applyOperation(); 
+                            shapes.add(complexShape);
+                            
+                        } else { // formes simples                
                             shapes.add(serializedShape);
                         }
                     }
-                }
-                
+                }              
             } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
             }
-        }
-    }
-
-    private void reconstructComplexShape(ComplexShape complexShape) {
-        // Récupérer les sous-formes de la forme complexe
-        ArrayList<Shape> subShapes = complexShape.getShapes();
-        
-        // Réappliquer les opérations
-        // Notez que vous devez disposer d'une méthode pour appliquer les opérations dans la classe ComplexShape
-        complexShape.applyOperation();
-        
-        // Ajouter la forme complexe reconstruite à votre liste de formes
-        shapes.add(complexShape);
+        } 
     }
 
     public static void main(String[] args) {
@@ -143,19 +155,10 @@ public class GUI extends JFrame {
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, drawingPanel.getWidth(), drawingPanel.getHeight());
 
-        /*ComplexShape lastComplexShape = null;
-        for (int i = shapes.size() - 1; i >= 0; i--) {
-            if (shapes.get(i) instanceof ComplexShape) {
-                lastComplexShape = (ComplexShape) shapes.get(i);
-                break;
-            }
-        }
-        if (lastComplexShape != null)lastComplexShape.draw((Graphics2D) g);*/
         for (Shape shape : shapes) {
             if (shape instanceof ComplexShape) {
                 ComplexShape complexShape = (ComplexShape) shape;
-                /*if (undo==false ) complexShape.clearShapes();*/
-                complexShape.draw((Graphics2D) g); // Dessiner la forme complexe
+                complexShape.draw((Graphics2D) g); 
             } else if (shape instanceof Circle) {
                 Circle circle = (Circle) shape;
                 circle.paint(drawingPanel);
@@ -228,22 +231,30 @@ public class GUI extends JFrame {
 
         JToggleButton newButtonSelect = new JToggleButton("<html><b>SELECT</b></html>");
         JToggleButton newButtonAdd = new JToggleButton("<html><b>ADD</b></html>");
-        JToggleButton newButtonDel = new JToggleButton("<html><b>DELETE</b></html>");
-        JToggleButton newButtonSave = new JToggleButton("<html><b>Save</b></html>");
+        JToggleButton newButtonDel = new JToggleButton("<html><b>DELETE</b></html>");   
         toolBar.add(newButtonSelect);
         toolBar.add(newButtonAdd);
         toolBar.add(newButtonDel);
-        toolBar.add(newButtonSave);
-
+        
         toolBar.addSeparator();
-
+        JComboBox<String> saveComboBox = new JComboBox<>(new String[]{"Save", "Save as"});
+        toolBar.add(saveComboBox);
+        saveComboBox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+            	saveMode=((String) saveComboBox.getSelectedItem()=="Save")?true:false;
+                serializeShape();
+            }
+        });
+        
+        toolBar.addSeparator();
         JButton differenceButton = new JButton("Difference");
         JButton unionButton = new JButton("Union");
         JButton intersectionButton = new JButton("Intersection");
         toolBar.add(differenceButton);
         toolBar.add(unionButton);
         toolBar.add(intersectionButton);
-
+     
         toolBar.addSeparator();
         JToggleButton buttonUndo = new JToggleButton("<html><b>Undo</b></html>");
         toolBar.add(buttonUndo);
@@ -257,7 +268,6 @@ public class GUI extends JFrame {
         toolBar.add(prefabComboBox);
         toolBar.setBackground(new Color(90, 90, 90));
        
-        
         shapeComboBox.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -268,7 +278,7 @@ public class GUI extends JFrame {
             }
         });
         
-        for (Component component : toolBar.getComponents()) { // comment vérifier qu'on passe sur les JComboBox?
+        for (Component component : toolBar.getComponents()) { // TODO hover on JComboBox doesn't work
             component.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseEntered(MouseEvent e) {
@@ -673,12 +683,6 @@ public class GUI extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
             	performOperation(OperationType.UNION,drawingPanel);
-            }
-        });
-        newButtonSave.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                serializeShape();
             }
         });
 
