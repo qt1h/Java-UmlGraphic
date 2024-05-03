@@ -24,7 +24,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.MalformedURLException;
+import java.rmi.Naming;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
+
 
 public class GUI extends JFrame {
 	ArrayList<Shape> shapes;
@@ -300,6 +305,80 @@ public class GUI extends JFrame {
         drawingPanel.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
         frame.getContentPane().add(drawingPanel, BorderLayout.CENTER);
         frame.setVisible(true);
+        JButton rmiSaveLoadButton = new JButton("RMI Save/Load");
+        rmiSaveLoadButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String serverIP = JOptionPane.showInputDialog(frame, "Enter RMI Server IP:", "RMI Server IP", JOptionPane.PLAIN_MESSAGE);
+                if (serverIP != null && !serverIP.isEmpty()) {
+                        RemoteShapeService remoteService = null;
+						try {
+							remoteService = (RemoteShapeService) Naming.lookup("//" + serverIP + ":1099/RemoteShapeService");
+						} catch (MalformedURLException | RemoteException | NotBoundException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
+                        if (saveMode) {
+                            // Sauvegarder les formes via RMI
+                            try {
+								remoteService.saveShapes(shapes);
+		
+							} catch (RemoteException e1) {
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							}
+                            JOptionPane.showMessageDialog(frame, "Shapes saved on RMI server.");
+                        } else {
+                            // Charger les formes via RMI
+                        	try {
+                        	    groupShape.clear();
+                        	    ArrayList<Shape> loadedShapes = (ArrayList<Shape>) remoteService.loadShapes();
+                        	    ArrayList<Shape> recombinatedShapes = new ArrayList<>();
+
+                        	    for (Shape s : loadedShapes) {
+                        	        if (s instanceof ComplexShape) {
+                        	            // Reconstruction à partir des sous-formes
+                        	            ComplexShape complexShape = (ComplexShape) s;
+                        	            ArrayList<Shape> subShapes = new ArrayList<>();
+                        	            
+                        	            // Ajouter les sous-formes avec les bonnes instances et opérations
+                        	            for (Shape subShape : complexShape.getShapes()) {
+                        	                if (subShape instanceof GeometricShapes.Rectangle) {
+                        	                    subShapes.add(subShape);
+                        	                } else if (subShape instanceof GeometricShapes.Circle) {
+                        	                	subShapes.add(subShape);
+                        	                }
+                        	                // Ajoutez d'autres conditions pour d'autres types de formes
+                        	            }
+                        	            
+                        	            // Créer une nouvelle instance de ComplexShape avec les sous-formes correctement initialisées
+                        	            ComplexShape newComplexShape = new GeometricShapes().new ComplexShape((Area) complexShape.getShape(), subShapes, complexShape.getOperation());
+                        	            
+                        	            // Appliquer l'opération à la nouvelle instance de ComplexShape
+                        	            newComplexShape.applyOperation();
+                        	            
+                        	            // Ajouter la nouvelle instance de ComplexShape et ses sous-formes à la liste des formes chargées
+                        	            recombinatedShapes.add(newComplexShape);
+                        	            //recombinatedShapes.addAll(subShapes);
+                        	        } else {
+                        	            // Forme simple, l'ajouter directement à la nouvelle liste
+                        	            recombinatedShapes.add(s);
+                        	        }
+                        	    }
+
+                        	    // Remplacer la liste shapes par la nouvelle liste recombinée
+                        	    shapes = recombinatedShapes;
+
+                        	    JOptionPane.showMessageDialog(frame, "Shapes loaded from RMI server.");
+                        	    paint(drawingPanel); // Repaint le panel
+                        	} catch (RemoteException e1) {
+                        	    e1.printStackTrace();
+                        	}
+                        }
+                    }
+                }
+            });
+        toolBar.add(rmiSaveLoadButton);
         deserializeShape();
         paint(drawingPanel);
         
