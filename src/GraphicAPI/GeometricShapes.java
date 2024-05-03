@@ -272,7 +272,9 @@ public class GeometricShapes extends JFrame {
         }
         @Override
         public boolean contains(Point point) {
+        	if (shape != null) 
             return shape.contains(point);
+        	else return false;
         }
 
         @Override
@@ -318,9 +320,13 @@ public class GeometricShapes extends JFrame {
 
         
         public void applyOperation() {
-            Area result = new Area(shapes.get(0).getShape()); // Initialiser avec la première forme
-
-            switch (operation) {
+        	Area result=new Area();
+        	if (shape!=null) {
+        		result = new Area(shapes.get(0).getShape()); 
+            } else return;// Initialiser avec la première forme
+            System.out.println(operation);
+           
+			switch (operation) {
                 case UNION:
                     // Ne rien faire, car l'opération d'union est déjà appliquée par défaut
                 	for (int i = 1; i < shapes.size(); i++) {
@@ -354,7 +360,9 @@ public class GeometricShapes extends JFrame {
 
         public void draw(Graphics2D g2d) {
             g2d.setColor(Color.BLACK); // Définir la couleur de dessin
+            if (shape!=null)
             g2d.fill(shape);
+            
             // Dessiner la forme complexe
         }
 
@@ -461,6 +469,26 @@ public class GeometricShapes extends JFrame {
 
 		public void setUNDOshapes(ArrayList<Shape> uNDOshapes) {
 			UNDOshapes = uNDOshapes;
+		}
+
+		public void setShapes(ArrayList<Shape> subShapes) {
+			shapes=subShapes;
+			
+		}
+
+		public void setOperation(OperationType operation) {
+			this.operation=operation;
+			
+		}
+
+		public OperationType getOperation() {
+			// TODO Auto-generated method stub
+			return operation;
+		}
+
+		public void setShape(Area shape) {
+			this.shape=shape;
+			
 		}
 
     }
