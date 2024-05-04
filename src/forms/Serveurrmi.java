@@ -1,13 +1,12 @@
-package GraphicAPI;
+package forms;
 import java.awt.geom.Area;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.List;
 
-import GraphicAPI.GUI.OperationType;
-import GraphicAPI.GeometricShapes.ComplexShape;
-import GraphicAPI.GeometricShapes.Shape;
+import forms.GeometricShapes.ComplexShape;
+import forms.GeometricShapes.Shape;
 
 // Implémentation du service distant pour la sauvegarde et le chargement de listes de formes
 public class Serveurrmi extends UnicastRemoteObject implements RemoteShapeService {

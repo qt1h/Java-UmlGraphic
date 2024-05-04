@@ -1,4 +1,4 @@
-package GraphicAPI;
+package forms;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -41,13 +41,13 @@ import javax.swing.JToggleButton;
 import javax.swing.JToolBar;
 import javax.swing.border.Border;
 
-import GraphicAPI.GeometricShapes.Circle;
-import GraphicAPI.GeometricShapes.ComplexShape;
-import GraphicAPI.GeometricShapes.Rectangle;
-import GraphicAPI.GeometricShapes.Shape;
+import forms.GeometricShapes.Circle;
+import forms.GeometricShapes.ComplexShape;
+import forms.GeometricShapes.Rectangle;
+import forms.GeometricShapes.Shape;
 
 
-public class GUI extends JFrame {
+public class App extends JFrame {
 	private static final long serialVersionUID = 1L;
 	ArrayList<Shape> shapes;
     ArrayList<Shape> selectionShapes;
@@ -77,7 +77,7 @@ public class GUI extends JFrame {
         EventQueue.invokeLater(new Runnable() {
             public void run() {
                 try {
-                    new GUI();
+                    new App();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -125,7 +125,8 @@ public class GUI extends JFrame {
             try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(file))) {
                 Object obj = in.readObject();
                 if (obj instanceof ArrayList) {
-                    ArrayList<Shape> serializedShapes = (ArrayList<Shape>) obj;
+                    @SuppressWarnings("unchecked")
+					ArrayList<Shape> serializedShapes = (ArrayList<Shape>) obj;
                     for (Shape serializedShape : serializedShapes) {
                         
                     	if (serializedShape instanceof ComplexShape) { // reconstruction with subShapes                            
@@ -149,14 +150,16 @@ public class GUI extends JFrame {
         x1 = y1 = x2 = y2 = dx = dy = 0;
     }
 
-    public boolean isNearBorder(GeometricShapes.Shape shape, Point clickPoint) {   
+    @SuppressWarnings("exports")
+	public boolean isNearBorder(GeometricShapes.Shape shape, Point clickPoint) {   
         return clickPoint.x <= shape.getX() + threshold || 
                clickPoint.x >= shape.getX() + shape.getWidth() - threshold ||
                clickPoint.y <= shape.getY() + threshold || 
                clickPoint.y >= shape.getY() + shape.getHeight() - threshold;
     }
     
-    public boolean isPointInsideselectionShapes(ArrayList<GeometricShapes.Shape> selectionShapes, Point point) {
+    @SuppressWarnings("exports")
+	public boolean isPointInsideselectionShapes(ArrayList<GeometricShapes.Shape> selectionShapes, Point point) {
 		if (selectionShapes.isEmpty()) {
 			return false;
 		}
@@ -305,7 +308,8 @@ public class GUI extends JFrame {
         }
     }
     
-    public void paint(JPanel drawingPanel) {
+    @SuppressWarnings("exports")
+	public void paint(JPanel drawingPanel) {
         Graphics g = drawingPanel.getGraphics();
         if (g == null) {
             return; 
@@ -351,7 +355,7 @@ public class GUI extends JFrame {
         }
     }
 
-    public GUI() {
+    public App() {
         shapes = new ArrayList<>();    
         selectionShapes = new ArrayList<>();   
         selectedShape = "Rectangle";

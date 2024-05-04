@@ -1,4 +1,4 @@
-package GraphicAPI;
+package forms;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
-import GraphicAPI.GUI.OperationType;
+import forms.App.OperationType;
 
 public class GeometricShapes extends JFrame {
     private static final long serialVersionUID = 1L;
@@ -31,7 +31,7 @@ public class GeometricShapes extends JFrame {
 		void resize(int dx, int dy);
     }
 
-    class Circle implements Shape, Serializable {
+    public class Circle implements Shape, Serializable {
         private static final int MIN_RADIUS = 0;
 		private int x;
         private int y;
@@ -228,7 +228,7 @@ public class GeometricShapes extends JFrame {
         }
     }
 
-    class ComplexShape implements Shape,Serializable {
+    public class ComplexShape implements Shape,Serializable {
     	private transient Area shape; // area not Serializable
         private ArrayList<Shape> subShapes;
         private OperationType operation;

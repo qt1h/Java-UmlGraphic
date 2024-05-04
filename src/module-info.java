@@ -8,5 +8,5 @@ module JavaProject {
 	requires java.desktop;
 	requires java.base;
 	requires java.rmi;
-	exports GraphicAPI;
+	exports forms;
 }
