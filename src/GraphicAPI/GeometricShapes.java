@@ -286,9 +286,7 @@ public class GeometricShapes extends JFrame {
         
         public void applyOperation() {
         	Area result=new Area();
-        	if (shape!=null) {
-        		result = new Area(subShapes.get(0).getShape()); 
-            } else return;
+        	result = new Area(subShapes.get(0).getShape()); 
            
 			switch (operation) {
                 case UNION:
