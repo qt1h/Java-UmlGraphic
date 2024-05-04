@@ -1,4 +1,4 @@
 Manifest-Version: 1.0
-Main-Class: GraphicAPI.GUI
+Main-Class: forms.App
 Created-By: 19.0.2 (Oracle Corporation)
 
