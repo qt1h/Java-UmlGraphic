@@ -285,11 +285,11 @@ public class App extends JFrame {
                 }
         		
         		if (!area1.isEmpty()) {
-                ArrayList<Shape> complexShapes = new ArrayList<>();
-                complexShapes.add(shape1);
-                complexShapes.add(shape2);
+        			ArrayList<Shape> complexShapes = new ArrayList<>();
+                	complexShapes.add(shape1);
+                	complexShapes.add(shape2);
                   
-                GeometricShapes.ComplexShape complexShape = new GeometricShapes().new ComplexShape(area1, complexShapes,operation);
+                	GeometricShapes.ComplexShape complexShape = new GeometricShapes().new ComplexShape(area1, complexShapes,operation);
                
                 	selectionShapes.add(complexShape) ;
                 	shapes.add(complexShape);
@@ -298,7 +298,7 @@ public class App extends JFrame {
                 	complexShape.setUNDOshapes(complexShapes); 
                 	shapes.removeAll(complexShapes);
                 
-                paint(drawingPanel);
+                	paint(drawingPanel);
         		} else {
                 JOptionPane.showMessageDialog(frame, "The resulting shape is empty.");
                 }
@@ -401,12 +401,9 @@ public class App extends JFrame {
         toolBar.add(intersectionButton);
         
         toolBar.addSeparator();
-        JComboBox<String> shapeComboBox = new JComboBox<>(new String[]{"Rectangle", "Circle"});
+        JComboBox<String> shapeComboBox = new JComboBox<>(new String[]{"Rectangle", "Circle","prefab1","prefab2","prefab3"});
         toolBar.add(shapeComboBox);
 
-        toolBar.addSeparator();
-        JComboBox<String> prefabComboBox = new JComboBox<>(new String[]{"prefab1","prefab2"});
-        toolBar.add(prefabComboBox);
         toolBar.setBackground(new Color(90, 90, 90));
        
         shapeComboBox.addActionListener(new ActionListener() {
@@ -590,8 +587,54 @@ public class App extends JFrame {
                                 y1 = e.getY();
                                 firstClickDone = true;
                             }
-                        } // else TODO prefabric?
-                        
+                        } else {
+                        	x1 = e.getX();
+                            y1 = e.getY();
+                        	if (selectedShape.equals("prefab1")){// TODO switch + visualisation in other JPanel + save as prefab
+                        		int width =150;
+                        		int height =150;
+                        		int[] rectangleParams = {x1,y1, width, height};
+                        		GeometricShapes.Rectangle newRectangle = new GeometricShapes().new Rectangle(rectangleParams);
+                            
+                        		int radius = 45;
+                        		int[] circleParams = {x1 - radius, y1 - radius, radius * 2};
+                        		GeometricShapes.Circle newCircle =new GeometricShapes().new Circle(circleParams);
+                            
+                        		selectionShapes.clear();
+                        		selectionShapes.add(newCircle);
+                        		selectionShapes.add(newRectangle);
+                        		performOperation(OperationType.DIFFERENCE,drawingPanel);
+                        	
+                        	} else if (selectedShape.equals("prefab2")) {
+                        		int radius = 45;
+                        		int[] circleParamsA = {x1 - 2*radius, y1 - radius, radius * 2};
+                        		GeometricShapes.Circle newCircleA =new GeometricShapes().new Circle(circleParamsA);
+                            
+                        		int[] circleParamsB = {x1 - radius, y1 - radius, radius * 2};
+                        		GeometricShapes.Circle newCircleB =new GeometricShapes().new Circle(circleParamsB);
+                            
+                        		selectionShapes.clear();
+                        		selectionShapes.add(newCircleA);
+                        		selectionShapes.add(newCircleB);
+                        		performOperation(OperationType.INTERSECTION,drawingPanel);
+                        	}else if (selectedShape.equals("prefab3")) {
+                        		int width =30;
+                        		int height =150;
+                        		int[] rectangleParamsA = {x1-height,y1, width, height};
+                        		GeometricShapes.Rectangle newRectA = new GeometricShapes().new Rectangle(rectangleParamsA);
+                            
+                        		int[] rectangleParamsB = {x1+height,y1, width, height};
+                        		GeometricShapes.Rectangle newRectB = new GeometricShapes().new Rectangle(rectangleParamsB);
+                            
+                        		selectionShapes.clear();
+                        		selectionShapes.add(newRectA);
+                        		selectionShapes.add(newRectB);
+                        		performOperation(OperationType.UNION,drawingPanel);
+                        		
+                        	}
+                        	firstClickDone = true;
+                    		paint(drawingPanel);
+                        }
                     } else if (selectionShapes.size() > 0) {
                     	boolean clickedInsideShape = false;
                         for (Shape shape : selectionShapes) {
@@ -720,7 +763,7 @@ public class App extends JFrame {
                             Graphics g = drawingPanel.getGraphics();
                             g.setColor(Color.GREEN);
                             g.drawRect(x, y, width, height);
-                        } //TODO place prefabric
+                        } 
                         
                     } else if (resizeMode) {
                         int dx = e.getX() - x1;
@@ -751,7 +794,7 @@ public class App extends JFrame {
                         y1 = e.getY();
                         paint(drawingPanel);
                     
-                    } else {
+                    } else if (!addMode){
                         ((ComplexShape) selectionShapes.get(0)).updateBounds(dx, dy);
                         x1 = e.getX();
                         y1 = e.getY();
