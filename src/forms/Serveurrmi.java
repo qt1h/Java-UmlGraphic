@@ -8,7 +8,6 @@ import java.util.List;
 import forms.GeometricShapes.ComplexShape;
 import forms.GeometricShapes.Shape;
 
-// Implémentation du service distant pour la sauvegarde et le chargement de listes de formes
 public class Serveurrmi extends UnicastRemoteObject implements RemoteShapeService {
     private ArrayList<Shape> shapeList;
     private ArrayList<Shape> complexShapesData;
@@ -20,12 +19,11 @@ public class Serveurrmi extends UnicastRemoteObject implements RemoteShapeServic
     }
 
     public void saveShapes(List<Shape> shapes) throws RemoteException {
-        // Réinitialisation de subShapes à chaque appel
     	complexShapesData.clear();
         shapeList.clear();
         for (Shape shape : shapes) {
             if (shape instanceof ComplexShape) {
-                // reconstruction à partir des sous-formes
+                //Reconstruction in App.java
                 System.out.println("Found complex shape...");
                 ComplexShape complexShape = (ComplexShape) shape;
                 ArrayList<Shape> subShapes = complexShape.getShapes();           
@@ -33,7 +31,6 @@ public class Serveurrmi extends UnicastRemoteObject implements RemoteShapeServic
                 complexShapesData.add(complexShape2);
             } else shapeList.add(shape);
         }
-
         System.out.println("Shapes saved on server.");
     }
 
@@ -51,18 +48,9 @@ public class Serveurrmi extends UnicastRemoteObject implements RemoteShapeServic
             complexShape.setOperation(((ComplexShape) data).getOperation());;
             
             if (complexShape != null && subShapes != null) {
-                // Appliquer les opérations, si nécessaire, sur la forme complexe
-                              
-                //
-            	//complexShape.applyOperation();
                 shapes.add(complexShape);
-                // Ajouter la forme complexe mise à jour à la liste des formes chargées
-                
-                //shapes.addAll(subShapes);
             }
-            
         }
-        
         return shapes;
     }
 

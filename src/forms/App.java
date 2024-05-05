@@ -65,6 +65,7 @@ public class App extends JFrame {
     private boolean movingShape = false; 
     private boolean undo=false;
 	private boolean saveMode=false;
+	private boolean saveRMIMode = false;
     private File lastUsedFile;
     
     public enum OperationType {
@@ -74,15 +75,22 @@ public class App extends JFrame {
     }
     
     public static void main(String[] args) {
-        EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                try {
-                    new App();
-                } catch (Exception e) {
-                    e.printStackTrace();
+    	if (args.length > 0 && args[0].equals("-s")) { //Serveur RMI
+            Serveurrmi.main(new String[0]);
+        } else if (args.length > 0 && args[0].equals("-t")) { //TerminalDraw
+            TerminalDraw.main(new String[0]);
+        }
+    	else {
+        	EventQueue.invokeLater(new Runnable() {
+                public void run() {
+                    try {
+                        new App();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
-            }
-        });
+            });
+        }
     }
     
     //Serialization
@@ -364,7 +372,7 @@ public class App extends JFrame {
     
     public void initialize() {
     	
-        frame = new JFrame();
+        frame = new JFrame("ManipShape");
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         int screenWidth = (int) screenSize.getWidth();
         int screenHeight = (int) screenSize.getHeight();
@@ -417,13 +425,14 @@ public class App extends JFrame {
         });
         
         toolBar.addSeparator();
-        JComboBox<String> saveComboBox = new JComboBox<>(new String[]{"Save", "Save as"});
+        JComboBox<String> saveComboBox = new JComboBox<>(new String[]{"Save", "Save as","RMI Save","RMI Load"});
         toolBar.add(saveComboBox);
         saveComboBox.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
             	saveMode=((String) saveComboBox.getSelectedItem()=="Save")?true:false;
-                serializeShape();
+            	saveRMIMode=((String) saveComboBox.getSelectedItem()=="RMI Save")?true:false;
+                if (saveComboBox.getSelectedItem()!="RMI Save" && saveComboBox.getSelectedItem()!="RMI Load") serializeShape();
             }
         });
         
@@ -450,7 +459,7 @@ public class App extends JFrame {
         frame.getContentPane().add(drawingPanel, BorderLayout.CENTER);
         frame.setVisible(true);
         
-        JButton rmiSaveLoadButton = new JButton("RMI Save/Load");
+        JButton rmiSaveLoadButton = new JButton("RMI Save/Load"); //Default is load
         rmiSaveLoadButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -460,14 +469,16 @@ public class App extends JFrame {
 						try {
 							remoteService = (RemoteShapeService) Naming.lookup("//" + serverIP + ":1099/RemoteShapeService");
 						} catch (MalformedURLException | RemoteException | NotBoundException e1) {						
-							e1.printStackTrace();
+							 JOptionPane.showMessageDialog(frame, "Server doesn't exist");
+							 return;
 						}
-                        if (saveMode) {  //Save on RMI server                     
+                        if (saveRMIMode) {  //Save on RMI server                     
                             try {
 								remoteService.saveShapes(shapes);
 		
 							} catch (RemoteException e1) {
-								e1.printStackTrace();
+								JOptionPane.showMessageDialog(frame, "Save failed");
+								return;
 							}
                             JOptionPane.showMessageDialog(frame, "Shapes saved on RMI server.");
                         } else {  //Load from RMI server
@@ -502,7 +513,8 @@ public class App extends JFrame {
                         	    JOptionPane.showMessageDialog(frame, "Shapes loaded from RMI server.");
                         	    paint(drawingPanel);
                         	} catch (RemoteException e1) {
-                        	    e1.printStackTrace();
+                        		JOptionPane.showMessageDialog(frame, "Load failed");
+								return;
                         	}
                         }
                 }

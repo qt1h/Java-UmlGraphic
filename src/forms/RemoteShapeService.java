@@ -6,6 +6,6 @@ import java.util.List;
 import forms.GeometricShapes.Shape;
 
 public interface RemoteShapeService extends Remote {
- void saveShapes(List<Shape> shapes) throws RemoteException;
- List<Shape> loadShapes() throws RemoteException;
+	void saveShapes(List<Shape> shapes) throws RemoteException;
+	List<Shape> loadShapes() throws RemoteException;
 }
